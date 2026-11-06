@@ -105,3 +105,89 @@ jobs:
             exit 1
           fi
           echo "✅ Build succeeded."
+
+  package-unsigned-ipa:
+    name: Build & Package Joy Doodle IPA (Unsigned)
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: |
+          # List available Xcode versions on macos-15 runner
+          ls /Applications/ | grep -i xcode || true
+          sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer || \
+          sudo xcode-select -s /Applications/Xcode_16.1.app/Contents/Developer || \
+          sudo xcode-select -s /Applications/Xcode_16.0.app/Contents/Developer || \
+          sudo xcode-select -s $(ls -d /Applications/Xcode*.app | sort -V | tail -1)/Contents/Developer
+          xcodebuild -version
+          xcodebuild -showsdks
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode Project
+        run: xcodegen generate --spec project.yml
+
+      - name: Resolve Swift Package Dependencies
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -project DoodleStudio.xcodeproj \
+            -scheme DoodleStudio \
+            -clonedSourcePackagesDirPath .build/packages
+
+      - name: Archive iOS Application (Release, Unsigned)
+        id: archive
+        run: |
+          set -o pipefail
+          xcodebuild archive \
+            -project DoodleStudio.xcodeproj \
+            -scheme DoodleStudio \
+            -sdk iphoneos \
+            -configuration Release \
+            -archivePath build_archive/DoodleStudio.xcarchive \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            SWIFT_TREAT_WARNINGS_AS_ERRORS=NO \
+            2>&1 | tee xcodebuild.log
+        continue-on-error: true
+
+      - name: Upload xcodebuild Log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-ipa-log
+          path: xcodebuild.log
+          retention-days: 30
+
+      - name: Package Unsigned IPA
+        if: steps.archive.outcome == 'success'
+        run: |
+          mkdir -p Payload
+          APP_PATH="build_archive/DoodleStudio.xcarchive/Products/Applications/DoodleStudio.app"
+          if [ -d "$APP_PATH" ]; then
+            cp -R "$APP_PATH" Payload/
+          else
+            echo "Error: $APP_PATH not found"
+            exit 1
+          fi
+          zip -r -9 JoyDoodle-unsigned.ipa Payload
+
+      - name: Upload Unsigned IPA
+        if: steps.archive.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: JoyDoodle-unsigned-IPA
+          path: JoyDoodle-unsigned.ipa
+          retention-days: 30
+
+      - name: Verify Archive Status
+        run: |
+          if [ "${{ steps.archive.outcome }}" = "failure" ]; then
+            echo "❌ IPA Archive failed. Check xcodebuild-ipa-log artifact."
+            exit 1
+          fi
+          echo "✅ Unsigned IPA created successfully."
