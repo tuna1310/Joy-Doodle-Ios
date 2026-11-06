@@ -1,166 +1,374 @@
 import SwiftUI
 import Combine
+import UIKit
 
+// MARK: - DrawViewModel
+// Port of Android's EditorViewModel. Full state machine for Drawing & Coloring.
+
+@MainActor
 public final class DrawViewModel: ObservableObject {
-    // Current artwork identity
-    public let artworkId: UUID
-    public var artworkTitle: String
-    
-    // Tools & Brushes
-    @Published public var currentTool: BrushTool = .neon
-    @Published public var currentStyle: BrushStyle = .neonGlow
-    @Published public var currentColor: Color = AppColors.neonYellow
-    @Published public var currentStrokeWidth: CGFloat = 10.0
+
+    // MARK: - Identity
+    public var artworkId: String
+    public var artworkTitle: String = "Neon Doodle"
+    @Published public var templateId: String? = nil
+    @Published public var isBlankCanvas: Bool = true
+
+    // MARK: - Mode
+    @Published public var editorMode: EditorMode = .draw
+
+    // MARK: - Brush Settings
+    @Published public var currentBrushId: String = "CLASSIC_NEON"
+    @Published public var currentColor: Color = Color(UIColor(hex: 0xFFFF2D95))
+    @Published public var currentStrokeWidth: CGFloat = 14
     @Published public var currentAlpha: CGFloat = 1.0
-    
-    // State of strokes
-    @Published public var strokes: [StrokeAction] = []
+    @Published public var isEraser: Bool = false
+    @Published public var isColorFillMode: Bool = false
+
+    // MARK: - History
     public let historyManager = HistoryManager()
-    
-    // Replay Player
+    @Published public var canUndo: Bool = false
+    @Published public var canRedo: Bool = false
+
+    // MARK: - Actions (committed strokes)
+    public var committedActions: [EditAction] = []
+
+    // MARK: - Replay
     @Published public var isReplaying: Bool = false
-    @Published public var replayCompletedStrokes: [StrokeAction] = []
-    @Published public var replayActiveStroke: StrokeAction? = nil
+    @Published public var replaySpeed: Double = 1.0
     public let player = ActionLogPlayer()
-    
-    // UI state
+
+    // MARK: - Template & Region Filler
+    @Published public var templateUIImage: UIImage? = nil
+    public var regionFiller: RegionFiller? = nil
+
+    // MARK: - UI State
     @Published public var showBrushPicker: Bool = false
     @Published public var showShareSubmenu: Bool = false
     @Published public var showClearAlert: Bool = false
-    @Published public var showMovieExport: Bool = false
+    @Published public var showExitDialog: Bool = false
+    @Published public var showTemplatePicker: Bool = false
     @Published public var showShareSheet: Bool = false
     @Published public var shareItems: [Any] = []
     @Published public var toastMessage: String? = nil
-    
-    // Canvas reference for snapshots
+    @Published public var isSaved: Bool = false
+    @Published public var isLoading: Bool = false
+
+    // MARK: - Canvas reference
     public weak var canvasView: NeonCanvasView?
-    
-    public init(artworkId: UUID? = nil) {
-        let id = artworkId ?? UUID()
-        self.artworkId = id
-        self.artworkTitle = "Artwork \(Date().formatted(date: .abbreviated, time: .shortened))"
-        
+
+    private var cancellables: Set<AnyCancellable> = []
+
+    // MARK: - Init
+    public init(artworkId: String? = nil, existing artwork: Artwork? = nil) {
+        self.artworkId = artworkId ?? "artwork_\(UUID().uuidString.prefix(8))"
+
+        if let artwork = artwork {
+            self.artworkTitle = artwork.title
+            self.templateId = artwork.templateId
+            self.isBlankCanvas = artwork.isBlankCanvas
+        }
+
         setupPlayer()
-        
-        if let existingId = artworkId, let saved = ArtworkRepository.shared.loadStrokes(for: existingId) {
-            self.strokes = saved
-            self.historyManager.load(actions: saved)
-        }
-    }
-    
-    private func setupPlayer() {
-        player.onUpdate = { [weak self] completed, active in
-            guard let self = self else { return }
-            self.replayCompletedStrokes = completed
-            self.replayActiveStroke = active
-        }
-        
-        player.onPlaybackEnded = { [weak self] in
-            // Playback completed
-        }
-    }
-    
-    // MARK: - Actions
-    
-    public func addStroke(_ stroke: StrokeAction) {
-        historyManager.push(stroke)
-        strokes = historyManager.currentStrokes
-    }
-    
-    public func undo() {
-        guard historyManager.canUndo else { return }
-        SoundEffectManager.shared.playUndo()
-        historyManager.undo()
-        strokes = historyManager.currentStrokes
-    }
-    
-    public func redo() {
-        guard historyManager.canRedo else { return }
-        SoundEffectManager.shared.playPop()
-        historyManager.redo()
-        strokes = historyManager.currentStrokes
-    }
-    
-    public func clearCanvas() {
-        SoundEffectManager.shared.playTrash()
-        historyManager.clear()
-        strokes = []
-        canvasView?.clear()
-    }
-    
-    public func toggleBrushPicker() {
-        if currentTool == .eraser {
-            currentTool = (currentStyle == .rainbow) ? .rainbow : .neon
-        }
-        showBrushPicker.toggle()
-        showShareSubmenu = false
-    }
-    
-    public func toggleEraser() {
-        showBrushPicker = false
-        showShareSubmenu = false
-        if currentTool == .eraser {
-            currentTool = (currentStyle == .rainbow) ? .rainbow : .neon
-        } else {
-            currentTool = .eraser
-        }
-    }
-    
-    public func startReplay() {
-        guard !strokes.isEmpty else {
-            toastMessage = "Draw something first to play replay!"
-            return
-        }
-        showBrushPicker = false
-        showShareSubmenu = false
-        isReplaying = true
-        player.load(actions: strokes)
-        player.play()
-    }
-    
-    public func exitReplay() {
-        player.stop()
-        isReplaying = false
-        replayCompletedStrokes.removeAll()
-        replayActiveStroke = nil
-        canvasView?.exitReplayMode()
-    }
-    
-    public func toggleShareSubmenu() {
-        showBrushPicker = false
-        showShareSubmenu.toggle()
-    }
-    
-    public func saveToPhotoAlbum() {
-        guard let canvas = canvasView else { return }
-        let snapshot = canvas.snapshot()
-        PNGExporter.saveToPhotosAlbum(image: snapshot) { [weak self] success, err in
-            if success {
-                self?.toastMessage = "Saved drawing to Photos!"
-                HapticManager.shared.success()
-            } else {
-                self?.toastMessage = "Could not save: \(err?.localizedDescription ?? "Permission required")"
-                HapticManager.shared.warning()
+        subscribeHistory()
+
+        if let tId = templateId {
+            if let template = TemplateRepository.shared.getTemplateById(tId) {
+                loadTemplate(template)
             }
         }
     }
-    
-    public func openShareSheet() {
+
+    private func setupPlayer() {
+        player.onUpdate = { [weak self] completed, active in
+            guard let self = self else { return }
+            // Update fill layer if completed actions contain fill
+            self.updateFillLayerFromActions(completed)
+            self.canvasView?.setReplayState(completed: completed, active: active)
+        }
+        player.onPlaybackEnded = { [weak self] in
+            self?.exitReplay()
+        }
+    }
+
+    private func subscribeHistory() {
+        historyManager.objectWillChange.sink { [weak self] in
+            self?.canUndo = self?.historyManager.canUndo ?? false
+            self?.canRedo = self?.historyManager.canRedo ?? false
+        }.store(in: &cancellables)
+    }
+
+    // MARK: - Brush / Mode Settings
+
+    public func selectBrush(_ brushId: String) {
+        isEraser = false
+        isColorFillMode = false
+        editorMode = .draw
+        currentBrushId = brushId
+        canvasView?.currentBrushId = brushId
+        canvasView?.isEraser = false
+        canvasView?.isColorFillMode = false
+
+        let brush = BrushRegistry.get(brushId)
+        currentStrokeWidth = brush.defaultSize
+        canvasView?.currentStrokeWidth = brush.defaultSize
+    }
+
+    public func toggleEraser() {
+        showBrushPicker = false; showShareSubmenu = false
+        isEraser.toggle()
+        if isEraser {
+            isColorFillMode = false
+            editorMode = .draw
+        }
+        canvasView?.isEraser = isEraser
+        canvasView?.isColorFillMode = false
+    }
+
+    public func setEditorMode(_ mode: EditorMode) {
+        editorMode = mode
+        isColorFillMode = (mode == .fill)
+        canvasView?.isColorFillMode = isColorFillMode
+        if mode == .fill {
+            isEraser = false
+            canvasView?.isEraser = false
+        }
+    }
+
+    // MARK: - Template Handling
+
+    public func loadTemplate(_ template: Template) {
+        isLoading = true
+        templateId = template.id
+        isBlankCanvas = false
+        artworkTitle = template.displayTitleVi
+
+        Task.detached(priority: .userInitiated) { [weak self] in
+            guard let self = self else { return }
+            let image = TemplateRepository.shared.loadTemplateImage(template)
+
+            var filler: RegionFiller? = nil
+            if let img = image, let labelMap = LabelMapBuilder.buildFromImage(img, dilationPixels: 1) {
+                filler = RegionFiller(labelMapResult: labelMap)
+            }
+
+            await MainActor.run {
+                self.templateUIImage = image
+                self.canvasView?.templateUIImage = image
+                self.regionFiller = filler
+                self.editorMode = .fill
+                self.isColorFillMode = true
+                self.canvasView?.isColorFillMode = true
+                self.isLoading = false
+            }
+        }
+    }
+
+    public func clearToBlankCanvas() {
+        templateId = nil
+        isBlankCanvas = true
+        templateUIImage = nil
+        canvasView?.templateUIImage = nil
+        regionFiller = nil
+        editorMode = .draw
+        isColorFillMode = false
+        canvasView?.isColorFillMode = false
+        canvasView?.fillLayer = nil
+        clearStrokes()
+    }
+
+    // MARK: - Fill Tap Handler (<300ms background queue, radial radius 24px)
+
+    public func handleFillTap(at point: CGPoint) {
+        guard let filler = regionFiller, let canvas = canvasView else { return }
+
+        // Scale point from view bounds to labelMap coordinates
+        let canvasW = canvas.bounds.width
+        let canvasH = canvas.bounds.height
+        guard canvasW > 0, canvasH > 0 else { return }
+
+        let scaleX = CGFloat(filler.width) / canvasW
+        let scaleY = CGFloat(filler.height) / canvasH
+
+        let mapX = Int(point.x * scaleX)
+        let mapY = Int(point.y * scaleY)
+
+        let colorInt = UIColor(currentColor).argbInt
+
+        Task.detached(priority: .userInitiated) { [weak self] in
+            guard let self = self else { return }
+            // Radial search: finds nearest region within 24px
+            let regionId = filler.labelMapResult.findNearestRegionId(x: mapX, y: mapY, maxRadius: 24)
+
+            if regionId > 0 {
+                let normX = Float(point.x / canvasW)
+                let normY = Float(point.y / canvasH)
+
+                if let action = filler.fill(regionId: Int(regionId), color: colorInt, normalizedX: normX, normalizedY: normY) {
+                    let fillImage = filler.generateImage()
+                    await MainActor.run {
+                        HapticManager.shared.impact()
+                        self.committedActions.append(action)
+                        self.historyManager.recordAction(action)
+                        self.canvasView?.fillLayer = fillImage
+                        self.isSaved = false
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Commit Stroke
+
+    public func commitAction(_ action: EditAction) {
+        committedActions.append(action)
+        historyManager.recordAction(action)
+        isSaved = false
+    }
+
+    // MARK: - Undo / Redo
+
+    public func undo() {
+        guard let action = historyManager.undo() else { return }
+        HapticManager.shared.impact()
+
+        switch action {
+        case .stroke, .erase:
+            committedActions.removeAll { $0.timestampMs == action.timestampMs }
+            let strokeActions = committedActions.filter {
+                switch $0 { case .stroke, .erase: return true; case .fill: return false }
+            }
+            canvasView?.redrawFromActions(strokeActions)
+
+        case .fill(let f):
+            committedActions.removeAll { $0.timestampMs == action.timestampMs }
+            regionFiller?.revertFill(f)
+            let img = regionFiller?.generateImage()
+            canvasView?.fillLayer = img
+        }
+        isSaved = false
+    }
+
+    public func redo() {
+        guard let action = historyManager.redo() else { return }
+        HapticManager.shared.impact()
+
+        switch action {
+        case .stroke, .erase:
+            committedActions.append(action)
+            canvasView?.appendCommittedAction(action)
+
+        case .fill(let f):
+            committedActions.append(action)
+            regionFiller?.applyFill(f)
+            let img = regionFiller?.generateImage()
+            canvasView?.fillLayer = img
+        }
+        isSaved = false
+    }
+
+    private func updateFillLayerFromActions(_ actions: [EditAction]) {
+        guard let filler = regionFiller else { return }
+        filler.reset()
+        for action in actions {
+            if case .fill(let f) = action {
+                filler.applyFill(f)
+            }
+        }
+        canvasView?.fillLayer = filler.generateImage()
+    }
+
+    // MARK: - Clear (keep template frame)
+
+    public func clearStrokes() {
+        HapticManager.shared.impact()
+        let fillActions = committedActions.filter { if case .fill = $0 { return true }; return false }
+        committedActions = fillActions
+        historyManager.reset()
+        for fa in fillActions { historyManager.recordAction(fa) }
+        canvasView?.redrawFromActions(committedActions)
+        isSaved = false
+    }
+
+    // MARK: - Replay
+
+    public func startReplay(speed: Double = 1.0) {
+        guard !committedActions.isEmpty else {
+            toastMessage = "Draw something first to play replay!"
+            return
+        }
+        showBrushPicker = false; showShareSubmenu = false
+        isReplaying = true
+        replaySpeed = speed
+        canvasView?.isReplaying = true
+        let log = exportActionLog()
+        player.load(actionLog: log)
+        player.play(speed: speed)
+    }
+
+    public func exitReplay() {
+        player.stop()
+        isReplaying = false
+        canvasView?.exitReplayMode()
+        // Restore fill layer to latest
+        let img = regionFiller?.generateImage()
+        canvasView?.fillLayer = img
+        let strokeActions = committedActions.filter {
+            switch $0 { case .stroke, .erase: return true; case .fill: return false }
+        }
+        canvasView?.redrawFromActions(strokeActions)
+    }
+
+    // MARK: - Export / Save
+
+    public func exportActionLog() -> ActionLog {
+        let actions = historyManager.getActionLog()
+        let duration: Int64 = actions.count > 1
+            ? (actions.last!.timestampMs - actions.first!.timestampMs)
+            : 0
+        return ActionLog(
+            version: 1,
+            artworkId: artworkId,
+            templateId: templateId,
+            isBlankCanvas: isBlankCanvas,
+            canvasWidth: Int(canvasView?.bounds.width ?? 1024),
+            canvasHeight: Int(canvasView?.bounds.height ?? 1024),
+            backgroundColor: UIColor.black.argbInt,
+            actions: actions,
+            totalDurationMs: duration
+        )
+    }
+
+    public func shareImage() {
         guard let canvas = canvasView else { return }
-        let snapshot = canvas.snapshot()
-        shareItems = [snapshot]
+        let image = canvas.snapshot()
+        shareItems = [image]
         showShareSheet = true
     }
-    
-    public func saveArtwork() {
-        guard !strokes.isEmpty, let canvas = canvasView else { return }
-        let thumbnail = canvas.snapshot()
-        ArtworkRepository.shared.save(
-            id: artworkId,
-            title: artworkTitle,
-            strokes: strokes,
-            thumbnail: thumbnail,
-            canvasSize: canvas.bounds.size
-        )
+
+    public func saveArtwork(onDone: @escaping (Bool) -> Void) {
+        guard let canvas = canvasView else { onDone(false); return }
+        isLoading = true
+        Task.detached(priority: .userInitiated) { [weak self] in
+            guard let self = self else { return }
+            let image = await MainActor.run { canvas.snapshot() }
+            let log = await MainActor.run { self.exportActionLog() }
+            let artwork = Artwork(
+                id: await MainActor.run { self.artworkId },
+                title: await MainActor.run { self.artworkTitle },
+                templateId: await MainActor.run { self.templateId },
+                isBlankCanvas: await MainActor.run { self.isBlankCanvas }
+            )
+            let success = ArtworkRepository.shared.save(artwork: artwork, actionLog: log, thumbnail: image)
+            await MainActor.run {
+                self.isLoading = false
+                self.isSaved = success
+                onDone(success)
+            }
+        }
+    }
+
+    public var hasContent: Bool {
+        !committedActions.isEmpty
     }
 }

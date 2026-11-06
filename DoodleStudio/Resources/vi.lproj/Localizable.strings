@@ -18,3 +18,14 @@
 "Video Length: %.0f seconds" = "Thời lượng video: %.0f giây";
 "Notice" = "Thông báo";
 "Saved drawing to Photos!" = "Đã lưu tranh vào thư viện ảnh!";
+"draw_something_first" = "Hãy vẽ một nét trước khi phát lại!";
+"exit_dialog_title" = "Bạn muốn làm gì với bức tranh?";
+"save_and_exit" = "Lưu lại";
+"discard_and_exit" = "Xóa đi";
+"keep_drawing" = "Vẽ tiếp";
+"fill_color" = "Tô màu";
+"draw_brush" = "Vẽ cọ";
+"free_draw" = "Vẽ tự do";
+"color_templates" = "Tranh tô màu";
+"choose_brush" = "Chọn cọ vẽ";
+"share_image" = "Chia sẻ ảnh";

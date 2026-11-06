@@ -18,3 +18,14 @@
 "Video Length: %.0f seconds" = "Video Length: %.0f seconds";
 "Notice" = "Notice";
 "Saved drawing to Photos!" = "Saved drawing to Photos!";
+"draw_something_first" = "Draw something first to play replay!";
+"exit_dialog_title" = "What would you like to do with your drawing?";
+"save_and_exit" = "Save & Exit";
+"discard_and_exit" = "Discard & Exit";
+"keep_drawing" = "Keep Drawing";
+"fill_color" = "Fill Color";
+"draw_brush" = "Draw Brush";
+"free_draw" = "Free Draw";
+"color_templates" = "Coloring Templates";
+"choose_brush" = "Choose Brush";
+"share_image" = "Share Image";

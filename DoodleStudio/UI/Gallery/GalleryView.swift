@@ -1,109 +1,185 @@
 import SwiftUI
 
-struct GalleryView: View {
-    @ObservedObject var repository = ArtworkRepository.shared
-    var onBack: () -> Void
-    var onSelectArtwork: (Artwork) -> Void
-    
-    @State private var shareItems: [Any] = []
-    @State private var showShareSheet: Bool = false
-    @State private var promoAlertItem: PromoAppItem? = nil
-    
+// MARK: - GalleryView
+// Matches Android GalleryScreen and user screenshot (media_1793974280891_0ebc612d.jpg):
+// - Clean white/light gray background
+// - Top-left back button (coral circle with white arrow)
+// - Top-right "N Artworks" label
+// - 3-column grid
+// - Each card: White background card with thin inner gray border, aspect ratio 3:4
+// - Saved artworks with black thumbnail
+// - Promo app cards with graphic icon and title below
+// - Tapping artwork opens DrawView with the saved ActionLog
+
+public struct GalleryView: View {
+    @Environment(\.dismiss) var dismiss
+    @State private var artworks: [Artwork] = []
+    @State private var selectedArtworkId: String? = nil
+    @State private var navigateToDraw = false
+
     private let columns = [
-        GridItem(.flexible(), spacing: 12),
-        GridItem(.flexible(), spacing: 12),
-        GridItem(.flexible(), spacing: 12)
+        GridItem(.flexible(), spacing: 10),
+        GridItem(.flexible(), spacing: 10),
+        GridItem(.flexible(), spacing: 10)
     ]
-    
-    var body: some View {
+
+    public init() {}
+
+    public var body: some View {
         ZStack {
-            AppColors.galleryBackground
-                .ignoresSafeArea()
-            
+            Color(UIColor(hex: 0xFFF8F9FA)).ignoresSafeArea()
+
             VStack(spacing: 0) {
-                // Top bar with Back button
+                // Top Header Bar
                 HStack {
-                    CoralCircleButton(iconName: "chevron.backward", size: 44) {
-                        onBack()
+                    // Back button (coral circle)
+                    Button(action: {
+                        HapticManager.shared.impact()
+                        dismiss()
+                    }) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(width: 44, height: 44)
+                            .background(AppColors.coralButton)
+                            .clipShape(Circle())
+                            .shadow(color: AppColors.coralButton.opacity(0.4), radius: 4)
                     }
+
                     Spacer()
+
+                    Text("\(artworks.count) Artworks")
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .foregroundColor(Color(UIColor(hex: 0xFF9E9E9E)))
                 }
                 .padding(.horizontal, 16)
-                .padding(.top, 10)
-                .padding(.bottom, 6)
-                
+                .padding(.vertical, 12)
+                .background(Color.white)
+                .shadow(color: Color.black.opacity(0.04), radius: 3, y: 2)
+
                 // 3-Column Grid
                 ScrollView {
-                    LazyVGrid(columns: columns, spacing: 14) {
-                        // 1. User's saved drawings
-                        ForEach(repository.artworks) { artwork in
-                            ArtworkCardView(
-                                artwork: artwork,
-                                onTap: {
-                                    onSelectArtwork(artwork)
-                                },
-                                onDelete: {
-                                    withAnimation {
-                                        repository.delete(id: artwork.id)
-                                    }
-                                    HapticManager.shared.mediumImpact()
-                                },
-                                onShare: {
-                                    if let thumbPath = artwork.thumbnailPath,
-                                       let image = FileStore.shared.loadThumbnail(from: thumbPath) {
-                                        shareItems = [image]
-                                        showShareSheet = true
-                                    }
-                                }
-                            )
+                    LazyVGrid(columns: columns, spacing: 12) {
+                        // 1. Saved Artworks
+                        ForEach(artworks) { artwork in
+                            GalleryArtworkCard(artwork: artwork) {
+                                HapticManager.shared.impact()
+                                selectedArtworkId = artwork.id
+                                navigateToDraw = true
+                            } onDelete: {
+                                ArtworkRepository.shared.deleteArtwork(id: artwork.id)
+                                artworks = ArtworkRepository.shared.loadAllArtworks()
+                            }
                         }
-                        
-                        // 2. Promo App Tiles (matching reference gallery)
-                        ForEach(PromoAppConfig.items) { promo in
-                            GalleryPromoCardView(item: promo) {
-                                promoAlertItem = promo
+
+                        // 2. Promo App Cards (fill out grid)
+                        ForEach(promoAppsList) { app in
+                            GalleryPromoAppCard(app: app) {
+                                HapticManager.shared.impact()
+                                openAppStore(app: app)
                             }
                         }
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 10)
-                    .padding(.bottom, 24)
-                    
-                    // Empty state hint if user has no saved drawings yet
-                    if repository.artworks.isEmpty {
-                        VStack(spacing: 6) {
-                            Text("Draw something!")
-                                .font(.system(size: 16, weight: .bold, design: .rounded))
-                                .foregroundColor(Color(hex: "#FF2D95"))
-                            Text("Your saved creations will show up here.")
-                                .font(.system(size: 13, design: .rounded))
-                                .foregroundColor(.gray)
-                        }
-                        .padding(.vertical, 16)
-                    }
-                    
-                    // Centered Footer Count (live from repository)
-                    Text("\(repository.artworks.count) Artworks")
-                        .font(.system(size: 15, weight: .medium, design: .rounded))
-                        .foregroundColor(Color.gray.opacity(0.7))
-                        .padding(.vertical, 20)
+                    .padding(12)
                 }
             }
         }
-        .preferredColorScheme(.light)
+        .navigationBarHidden(true)
+        .navigationDestination(isPresented: $navigateToDraw) {
+            if let id = selectedArtworkId {
+                DrawView(viewModel: DrawViewModel(artworkId: id, existing: ArtworkRepository.shared.getArtworkById(id)))
+            }
+        }
         .onAppear {
-            repository.loadIndex()
+            artworks = ArtworkRepository.shared.loadAllArtworks()
         }
-        .sheet(isPresented: $showShareSheet) {
-            ShareActivityView(activityItems: shareItems)
+    }
+}
+
+// MARK: - GalleryArtworkCard (White card, thin inner gray frame, 3:4 ratio)
+struct GalleryArtworkCard: View {
+    let artwork: Artwork
+    let onTap: () -> Void
+    let onDelete: () -> Void
+
+    @State private var thumbnail: UIImage? = nil
+
+    var body: some View {
+        Button(action: onTap) {
+            ZStack {
+                // Outer white card
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Color.white)
+                    .shadow(color: Color.black.opacity(0.06), radius: 4, y: 2)
+
+                // Inner thin gray frame
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(Color(UIColor(hex: 0xFFE0E0E0)), lineWidth: 1)
+                    .padding(3)
+
+                // Black thumbnail
+                ZStack {
+                    Color.black
+                    if let img = thumbnail {
+                        Image(uiImage: img)
+                            .resizable()
+                            .scaledToFit()
+                    } else {
+                        Image(systemName: "photo")
+                            .foregroundColor(.gray)
+                    }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                .padding(6)
+            }
+            .aspectRatio(0.72, contentMode: .fit)
         }
-        .alert(promoAlertItem?.title ?? "App", isPresented: Binding(
-            get: { promoAlertItem != nil },
-            set: { if !$0 { promoAlertItem = nil } }
-        )) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text("More exciting creative apps are coming soon!")
+        .buttonStyle(PressAnimButtonStyle(isPressed: .constant(false)))
+        .contextMenu {
+            Button(role: .destructive, action: onDelete) {
+                Label("Xóa tranh", systemImage: "trash")
+            }
         }
+        .onAppear {
+            thumbnail = ArtworkRepository.shared.loadThumbnail(artwork: artwork)
+        }
+    }
+}
+
+// MARK: - GalleryPromoAppCard (Matches screenshot in media_1793974280891_0ebc612d.jpg)
+struct GalleryPromoAppCard: View {
+    let app: PromoApp
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            ZStack {
+                // Outer white card
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Color.white)
+                    .shadow(color: Color.black.opacity(0.06), radius: 4, y: 2)
+
+                // Inner thin gray frame
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(Color(UIColor(hex: 0xFFE0E0E0)), lineWidth: 1)
+                    .padding(3)
+
+                // Content
+                VStack(spacing: 6) {
+                    PromoAppIconView(iconType: app.iconType, size: 58)
+
+                    Text(app.title)
+                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                        .foregroundColor(Color(UIColor(hex: 0xFF212121)))
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.8)
+                        .padding(.horizontal, 4)
+                }
+                .padding(8)
+            }
+            .aspectRatio(0.72, contentMode: .fit)
+        }
+        .buttonStyle(PressAnimButtonStyle(isPressed: .constant(false)))
     }
 }

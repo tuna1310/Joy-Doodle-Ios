@@ -1,74 +1,54 @@
 import SwiftUI
 import UIKit
 
-struct NeonCanvasRepresentable: UIViewRepresentable {
-    @Binding var currentTool: BrushTool
-    @Binding var currentStyle: BrushStyle
-    @Binding var currentColor: Color
-    @Binding var currentStrokeWidth: CGFloat
-    @Binding var currentAlpha: CGFloat
-    
-    var strokes: [StrokeAction]
-    var isReplaying: Bool
-    var replayCompletedStrokes: [StrokeAction]
-    var replayActiveStroke: StrokeAction?
-    
-    var onStrokeAdded: (StrokeAction) -> Void
-    var onBeginDrawing: (() -> Void)?
-    var onCanvasReady: ((NeonCanvasView) -> Void)?
-    
-    func makeUIView(context: Context) -> NeonCanvasView {
-        let canvas = NeonCanvasView()
-        canvas.delegate = context.coordinator
-        context.coordinator.canvas = canvas
-        onCanvasReady?(canvas)
-        return canvas
+// MARK: - NeonCanvasRepresentable
+// UIViewRepresentable wrapper connecting NeonCanvasView to SwiftUI.
+
+public struct NeonCanvasRepresentable: UIViewRepresentable {
+    @ObservedObject var viewModel: DrawViewModel
+
+    public func makeUIView(context: Context) -> NeonCanvasView {
+        let canvasView = NeonCanvasView()
+        canvasView.delegate = context.coordinator
+        viewModel.canvasView = canvasView
+        applySettings(canvasView)
+        return canvasView
     }
-    
-    func updateUIView(_ canvas: NeonCanvasView, context: Context) {
-        canvas.currentTool = currentTool
-        canvas.currentStyle = currentStyle
-        canvas.currentColor = UIColor(currentColor)
-        canvas.currentStrokeWidth = currentStrokeWidth
-        canvas.currentAlpha = currentAlpha
-        
-        if isReplaying {
-            canvas.setReplayState(completed: replayCompletedStrokes, active: replayActiveStroke)
-        } else {
-            if canvas.isReplaying {
-                canvas.exitReplayMode()
-            }
-            // Update strokes if history changed (e.g. undo, redo, clear, load)
-            if context.coordinator.lastStrokesCount != strokes.count || context.coordinator.lastStrokesId != strokes.last?.id {
-                context.coordinator.lastStrokesCount = strokes.count
-                context.coordinator.lastStrokesId = strokes.last?.id
-                canvas.setStrokes(strokes)
-            }
+
+    public func updateUIView(_ uiView: NeonCanvasView, context: Context) {
+        applySettings(uiView)
+        if uiView.templateUIImage !== viewModel.templateUIImage {
+            uiView.templateUIImage = viewModel.templateUIImage
         }
     }
-    
-    func makeCoordinator() -> Coordinator {
-        Coordinator(self)
+
+    private func applySettings(_ view: NeonCanvasView) {
+        view.currentBrushId = viewModel.currentBrushId
+        view.currentColor = UIColor(viewModel.currentColor)
+        view.currentStrokeWidth = viewModel.currentStrokeWidth
+        view.currentAlpha = viewModel.currentAlpha
+        view.isEraser = viewModel.isEraser
+        view.isColorFillMode = viewModel.isColorFillMode
     }
-    
-    final class Coordinator: NSObject, NeonCanvasViewDelegate {
-        var parent: NeonCanvasRepresentable
-        weak var canvas: NeonCanvasView?
-        var lastStrokesCount: Int = 0
-        var lastStrokesId: UUID?
-        
-        init(_ parent: NeonCanvasRepresentable) {
-            self.parent = parent
+
+    public func makeCoordinator() -> Coordinator { Coordinator(viewModel: viewModel) }
+
+    public final class Coordinator: NSObject, NeonCanvasViewDelegate {
+        let viewModel: DrawViewModel
+
+        init(viewModel: DrawViewModel) { self.viewModel = viewModel }
+
+        public func canvasDidBeginDrawing() {
+            viewModel.showBrushPicker = false
+            viewModel.showShareSubmenu = false
         }
-        
-        func canvasDidAddStroke(_ stroke: StrokeAction) {
-            lastStrokesCount += 1
-            lastStrokesId = stroke.id
-            parent.onStrokeAdded(stroke)
+
+        public func canvasDidCommitStroke(_ action: EditAction) {
+            viewModel.commitAction(action)
         }
-        
-        func canvasDidBeginDrawing() {
-            parent.onBeginDrawing?()
+
+        public func canvasDidTapToFill(at point: CGPoint) {
+            viewModel.handleFillTap(at: point)
         }
     }
 }
