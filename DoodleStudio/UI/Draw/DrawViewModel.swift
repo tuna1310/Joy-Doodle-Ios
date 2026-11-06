@@ -5,6 +5,12 @@ import UIKit
 // MARK: - DrawViewModel
 // Port of Android's EditorViewModel. Full state machine for Drawing & Coloring.
 
+// MARK: - EditorMode
+public enum EditorMode: String, Codable {
+    case draw
+    case fill
+}
+
 @MainActor
 public final class DrawViewModel: ObservableObject {
 

@@ -81,12 +81,15 @@ public func openAppStore(app: PromoApp) {
 // MARK: - PromoAppIconView (canvas-drawn icons, same visuals as Android)
 
 public struct PromoAppIconView: View {
-    let iconType: PromoIconType
-    let size: CGFloat
+    public let iconType: PromoIconType
+    public let size: CGFloat
 
-    @State private var isPressed = false
+    public init(iconType: PromoIconType, size: CGFloat) {
+        self.iconType = iconType
+        self.size = size
+    }
 
-    var body: some View {
+    public var body: some View {
         Canvas { ctx, size in
             drawIcon(ctx: ctx, size: size, type: iconType)
         }
@@ -176,8 +179,13 @@ public struct PromoAppIconView: View {
 
 // MARK: - PromoAppCard for Gallery (white card with icon + title)
 public struct PromoGalleryCard: View {
-    let app: PromoApp
-    var body: some View {
+    public let app: PromoApp
+
+    public init(app: PromoApp) {
+        self.app = app
+    }
+
+    public var body: some View {
         VStack(spacing: 8) {
             PromoAppIconView(iconType: app.iconType, size: 68)
             Text(app.title)
