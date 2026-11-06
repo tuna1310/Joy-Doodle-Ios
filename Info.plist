@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleDisplayName</key>
+	<string>Joy Doodle</string>
+	<key>CFBundleExecutable</key>
+	<string>DoodleStudio</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.doodlestudio.app</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>DoodleStudio</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0.0</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>UIDeviceFamily</key>
+	<array>
+		<integer>1</integer>
+	</array>
+	<key>UILaunchScreen</key>
+	<dict/>
+	<key>UIRequiredDeviceCapabilities</key>
+	<array>
+		<string>arm64</string>
+	</array>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+	</array>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Joy Doodle needs permission to save your glow drawings and timelapse videos to your photo library.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Joy Doodle needs permission to access photos for drawing backgrounds.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Joy Doodle needs camera permission to capture background photos to draw on.</string>
+</dict>
+</plist>

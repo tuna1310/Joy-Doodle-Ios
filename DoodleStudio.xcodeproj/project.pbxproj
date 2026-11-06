@@ -1,0 +1,588 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		DS0000000000000000000001 /* DoodleStudioApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DS1000000000000000000001 /* DoodleStudioApp.swift */; };
+		DS0000000000000000000002 /* AppRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DS1000000000000000000002 /* AppRootView.swift */; };
+		DS0000000000000000000003 /* Colors.swift in Sources */ = {isa = PBXBuildFile; fileRef = DS1000000000000000000003 /* Colors.swift */; };
+		DS0000000000000000000004 /* NeonGlowModifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = DS1000000000000000000004 /* NeonGlowModifiers.swift */; };
+		DS0000000000000000000005 /* HapticManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DS1000000000000000000005 /* HapticManager.swift */; };
+		DS0000000000000000000006 /* SoundEffectManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DS1000000000000000000006 /* SoundEffectManager.swift */; };
+		DS0000000000000000000007 /* BrushTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = DS1000000000000000000007 /* BrushTool.swift */; };
+		DS0000000000000000000008 /* Point.swift in Sources */ = {isa = PBXBuildFile; fileRef = DS1000000000000000000008 /* Point.swift */; };
+		DS0000000000000000000009 /* CodableColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = DS1000000000000000000009 /* CodableColor.swift */; };
+		DS000000000000000000000A /* StrokeAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = DS100000000000000000000A /* StrokeAction.swift */; };
+		DS000000000000000000000B /* ActionLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = DS100000000000000000000B /* ActionLog.swift */; };
+		DS000000000000000000000C /* Artwork.swift in Sources */ = {isa = PBXBuildFile; fileRef = DS100000000000000000000C /* Artwork.swift */; };
+		DS000000000000000000000D /* StrokeInterpolator.swift in Sources */ = {isa = PBXBuildFile; fileRef = DS100000000000000000000D /* StrokeInterpolator.swift */; };
+		DS000000000000000000000E /* HistoryManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DS100000000000000000000E /* HistoryManager.swift */; };
+		DS000000000000000000000F /* ActionLogPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = DS100000000000000000000F /* ActionLogPlayer.swift */; };
+		DS0000000000000000000010 /* NeonStrokeRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = DS1000000000000000000010 /* NeonStrokeRenderer.swift */; };
+		DS0000000000000000000011 /* PNGExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = DS1000000000000000000011 /* PNGExporter.swift */; };
+		DS0000000000000000000012 /* TimelapseExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = DS1000000000000000000012 /* TimelapseExporter.swift */; };
+		DS0000000000000000000013 /* FileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DS1000000000000000000013 /* FileStore.swift */; };
+		DS0000000000000000000014 /* ArtworkRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = DS1000000000000000000014 /* ArtworkRepository.swift */; };
+		DS0000000000000000000015 /* NeonLetteringView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DS1000000000000000000015 /* NeonLetteringView.swift */; };
+		DS0000000000000000000016 /* NeonIconCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = DS1000000000000000000016 /* NeonIconCard.swift */; };
+		DS0000000000000000000017 /* MoreAppsRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = DS1000000000000000000017 /* MoreAppsRow.swift */; };
+		DS0000000000000000000018 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DS1000000000000000000018 /* HomeView.swift */; };
+		DS0000000000000000000019 /* CoralCircleButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = DS1000000000000000000019 /* CoralCircleButton.swift */; };
+		DS000000000000000000001A /* BannerAdPlaceholder.swift in Sources */ = {isa = PBXBuildFile; fileRef = DS100000000000000000001A /* BannerAdPlaceholder.swift */; };
+		DS000000000000000000001B /* ShareActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DS100000000000000000001B /* ShareActivityView.swift */; };
+		DS000000000000000000001C /* NeonCanvasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DS100000000000000000001C /* NeonCanvasView.swift */; };
+		DS000000000000000000001D /* NeonCanvasRepresentable.swift in Sources */ = {isa = PBXBuildFile; fileRef = DS100000000000000000001D /* NeonCanvasRepresentable.swift */; };
+		DS000000000000000000001E /* DrawingToolbarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DS100000000000000000001E /* DrawingToolbarView.swift */; };
+		DS000000000000000000001F /* BrushPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DS100000000000000000001F /* BrushPickerSheet.swift */; };
+		DS0000000000000000000020 /* MoviePlaybackBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = DS1000000000000000000020 /* MoviePlaybackBar.swift */; };
+		DS0000000000000000000021 /* ShareMenuOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = DS1000000000000000000021 /* ShareMenuOverlay.swift */; };
+		DS0000000000000000000022 /* DrawViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DS1000000000000000000022 /* DrawViewModel.swift */; };
+		DS0000000000000000000023 /* DrawView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DS1000000000000000000023 /* DrawView.swift */; };
+		DS0000000000000000000024 /* MovieExportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DS1000000000000000000024 /* MovieExportView.swift */; };
+		DS0000000000000000000025 /* GalleryCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DS1000000000000000000025 /* GalleryCardView.swift */; };
+		DS0000000000000000000026 /* GalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DS1000000000000000000026 /* GalleryView.swift */; };
+		DS0000000000000000000027 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = DS1000000000000000000027 /* Localizable.strings */; };
+		DS0000000000000000000028 /* ActionLogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DS1000000000000000000028 /* ActionLogTests.swift */; };
+		DS0000000000000000000029 /* HistoryManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DS1000000000000000000029 /* HistoryManagerTests.swift */; };
+		DS000000000000000000002A /* ActionLogPlayerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DS100000000000000000002A /* ActionLogPlayerTests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		DS2000000000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DS9000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = DS3000000000000000000001;
+			remoteInfo = DoodleStudio;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		DS1000000000000000000001 /* DoodleStudioApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoodleStudioApp.swift; sourceTree = "<group>"; };
+		DS1000000000000000000002 /* AppRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRootView.swift; sourceTree = "<group>"; };
+		DS1000000000000000000003 /* Colors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Colors.swift; sourceTree = "<group>"; };
+		DS1000000000000000000004 /* NeonGlowModifiers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NeonGlowModifiers.swift; sourceTree = "<group>"; };
+		DS1000000000000000000005 /* HapticManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticManager.swift; sourceTree = "<group>"; };
+		DS1000000000000000000006 /* SoundEffectManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundEffectManager.swift; sourceTree = "<group>"; };
+		DS1000000000000000000007 /* BrushTool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrushTool.swift; sourceTree = "<group>"; };
+		DS1000000000000000000008 /* Point.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Point.swift; sourceTree = "<group>"; };
+		DS1000000000000000000009 /* CodableColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodableColor.swift; sourceTree = "<group>"; };
+		DS100000000000000000000A /* StrokeAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrokeAction.swift; sourceTree = "<group>"; };
+		DS100000000000000000000B /* ActionLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionLog.swift; sourceTree = "<group>"; };
+		DS100000000000000000000C /* Artwork.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Artwork.swift; sourceTree = "<group>"; };
+		DS100000000000000000000D /* StrokeInterpolator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrokeInterpolator.swift; sourceTree = "<group>"; };
+		DS100000000000000000000E /* HistoryManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryManager.swift; sourceTree = "<group>"; };
+		DS100000000000000000000F /* ActionLogPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionLogPlayer.swift; sourceTree = "<group>"; };
+		DS1000000000000000000010 /* NeonStrokeRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NeonStrokeRenderer.swift; sourceTree = "<group>"; };
+		DS1000000000000000000011 /* PNGExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PNGExporter.swift; sourceTree = "<group>"; };
+		DS1000000000000000000012 /* TimelapseExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelapseExporter.swift; sourceTree = "<group>"; };
+		DS1000000000000000000013 /* FileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileStore.swift; sourceTree = "<group>"; };
+		DS1000000000000000000014 /* ArtworkRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArtworkRepository.swift; sourceTree = "<group>"; };
+		DS1000000000000000000015 /* NeonLetteringView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NeonLetteringView.swift; sourceTree = "<group>"; };
+		DS1000000000000000000016 /* NeonIconCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NeonIconCard.swift; sourceTree = "<group>"; };
+		DS1000000000000000000017 /* MoreAppsRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoreAppsRow.swift; sourceTree = "<group>"; };
+		DS1000000000000000000018 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		DS1000000000000000000019 /* CoralCircleButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoralCircleButton.swift; sourceTree = "<group>"; };
+		DS100000000000000000001A /* BannerAdPlaceholder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BannerAdPlaceholder.swift; sourceTree = "<group>"; };
+		DS100000000000000000001B /* ShareActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareActivityView.swift; sourceTree = "<group>"; };
+		DS100000000000000000001C /* NeonCanvasView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NeonCanvasView.swift; sourceTree = "<group>"; };
+		DS100000000000000000001D /* NeonCanvasRepresentable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NeonCanvasRepresentable.swift; sourceTree = "<group>"; };
+		DS100000000000000000001E /* DrawingToolbarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawingToolbarView.swift; sourceTree = "<group>"; };
+		DS100000000000000000001F /* BrushPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrushPickerSheet.swift; sourceTree = "<group>"; };
+		DS1000000000000000000020 /* MoviePlaybackBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoviePlaybackBar.swift; sourceTree = "<group>"; };
+		DS1000000000000000000021 /* ShareMenuOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareMenuOverlay.swift; sourceTree = "<group>"; };
+		DS1000000000000000000022 /* DrawViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawViewModel.swift; sourceTree = "<group>"; };
+		DS1000000000000000000023 /* DrawView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawView.swift; sourceTree = "<group>"; };
+		DS1000000000000000000024 /* MovieExportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovieExportView.swift; sourceTree = "<group>"; };
+		DS1000000000000000000025 /* GalleryCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryCardView.swift; sourceTree = "<group>"; };
+		DS1000000000000000000026 /* GalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryView.swift; sourceTree = "<group>"; };
+		DS1000000000000000000027 /* Localizable.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = DoodleStudio/Resources/en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		DS1000000000000000000028 /* ActionLogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionLogTests.swift; sourceTree = "<group>"; };
+		DS1000000000000000000029 /* HistoryManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryManagerTests.swift; sourceTree = "<group>"; };
+		DS100000000000000000002A /* ActionLogPlayerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionLogPlayerTests.swift; sourceTree = "<group>"; };
+		DS100000000000000000002B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		DS4000000000000000000001 /* DoodleStudio.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DoodleStudio.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		DS4000000000000000000002 /* DoodleStudioTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DoodleStudioTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		DS5000000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DS5000000000000000000002 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		DS6000000000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				DS6000000000000000000002 /* DoodleStudio */,
+				DS6000000000000000000003 /* DoodleStudioTests */,
+				DS6000000000000000000004 /* Products */,
+				DS100000000000000000002B /* Info.plist */,
+			);
+			sourceTree = "<group>";
+		};
+		DS6000000000000000000002 /* DoodleStudio */ = {
+			isa = PBXGroup;
+			children = (
+				DS6000000000000000000005 /* App */,
+				DS6000000000000000000006 /* Core */,
+				DS6000000000000000000007 /* Domain */,
+				DS6000000000000000000008 /* Data */,
+				DS6000000000000000000009 /* UI */,
+				DS600000000000000000000A /* Resources */,
+			);
+			path = DoodleStudio;
+			sourceTree = "<group>";
+		};
+		DS6000000000000000000003 /* DoodleStudioTests */ = {
+			isa = PBXGroup;
+			children = (
+				DS1000000000000000000028 /* ActionLogTests.swift */,
+				DS1000000000000000000029 /* HistoryManagerTests.swift */,
+				DS100000000000000000002A /* ActionLogPlayerTests.swift */,
+			);
+			path = DoodleStudioTests;
+			sourceTree = "<group>";
+		};
+		DS6000000000000000000004 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				DS4000000000000000000001 /* DoodleStudio.app */,
+				DS4000000000000000000002 /* DoodleStudioTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		DS6000000000000000000005 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				DS1000000000000000000001 /* DoodleStudioApp.swift */,
+				DS1000000000000000000002 /* AppRootView.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		DS6000000000000000000006 /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				DS1000000000000000000003 /* Colors.swift */,
+				DS1000000000000000000004 /* NeonGlowModifiers.swift */,
+				DS1000000000000000000005 /* HapticManager.swift */,
+				DS1000000000000000000006 /* SoundEffectManager.swift */,
+			);
+			path = Core;
+			sourceTree = "<group>";
+		};
+		DS6000000000000000000007 /* Domain */ = {
+			isa = PBXGroup;
+			children = (
+				DS1000000000000000000007 /* BrushTool.swift */,
+				DS1000000000000000000008 /* Point.swift */,
+				DS1000000000000000000009 /* CodableColor.swift */,
+				DS100000000000000000000A /* StrokeAction.swift */,
+				DS100000000000000000000B /* ActionLog.swift */,
+				DS100000000000000000000C /* Artwork.swift */,
+				DS100000000000000000000D /* StrokeInterpolator.swift */,
+				DS100000000000000000000E /* HistoryManager.swift */,
+				DS100000000000000000000F /* ActionLogPlayer.swift */,
+				DS1000000000000000000010 /* NeonStrokeRenderer.swift */,
+				DS1000000000000000000011 /* PNGExporter.swift */,
+				DS1000000000000000000012 /* TimelapseExporter.swift */,
+			);
+			path = Domain;
+			sourceTree = "<group>";
+		};
+		DS6000000000000000000008 /* Data */ = {
+			isa = PBXGroup;
+			children = (
+				DS1000000000000000000013 /* FileStore.swift */,
+				DS1000000000000000000014 /* ArtworkRepository.swift */,
+			);
+			path = Data;
+			sourceTree = "<group>";
+		};
+		DS6000000000000000000009 /* UI */ = {
+			isa = PBXGroup;
+			children = (
+				DS1000000000000000000015 /* NeonLetteringView.swift */,
+				DS1000000000000000000016 /* NeonIconCard.swift */,
+				DS1000000000000000000017 /* MoreAppsRow.swift */,
+				DS1000000000000000000018 /* HomeView.swift */,
+				DS1000000000000000000019 /* CoralCircleButton.swift */,
+				DS100000000000000000001A /* BannerAdPlaceholder.swift */,
+				DS100000000000000000001B /* ShareActivityView.swift */,
+				DS100000000000000000001C /* NeonCanvasView.swift */,
+				DS100000000000000000001D /* NeonCanvasRepresentable.swift */,
+				DS100000000000000000001E /* DrawingToolbarView.swift */,
+				DS100000000000000000001F /* BrushPickerSheet.swift */,
+				DS1000000000000000000020 /* MoviePlaybackBar.swift */,
+				DS1000000000000000000021 /* ShareMenuOverlay.swift */,
+				DS1000000000000000000022 /* DrawViewModel.swift */,
+				DS1000000000000000000023 /* DrawView.swift */,
+				DS1000000000000000000024 /* MovieExportView.swift */,
+				DS1000000000000000000025 /* GalleryCardView.swift */,
+				DS1000000000000000000026 /* GalleryView.swift */,
+			);
+			path = UI;
+			sourceTree = "<group>";
+		};
+		DS600000000000000000000A /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				DS1000000000000000000027 /* Localizable.strings */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		DS3000000000000000000001 /* DoodleStudio */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DS7000000000000000000001 /* Build configuration list for PBXNativeTarget "DoodleStudio" */;
+			buildPhases = (
+				DS8000000000000000000001 /* Sources */,
+				DS5000000000000000000001 /* Frameworks */,
+				DS8000000000000000000003 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = DoodleStudio;
+			productName = DoodleStudio;
+			productReference = DS4000000000000000000001 /* DoodleStudio.app */;
+			productType = "com.apple.product-type.application";
+		};
+		DS3000000000000000000002 /* DoodleStudioTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DS7000000000000000000002 /* Build configuration list for PBXNativeTarget "DoodleStudioTests" */;
+			buildPhases = (
+				DS8000000000000000000002 /* Sources */,
+				DS5000000000000000000002 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				DS2000000000000000000002 /* PBXTargetDependency */,
+			);
+			name = DoodleStudioTests;
+			productName = DoodleStudioTests;
+			productReference = DS4000000000000000000002 /* DoodleStudioTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		DS9000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					DS3000000000000000000001 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+					DS3000000000000000000002 = {
+						CreatedOnToolsVersion = 15.0;
+						TestTargetID = DS3000000000000000000001;
+					};
+				};
+			};
+			buildConfigurationList = DS7000000000000000000003 /* Build configuration list for PBXProject "DoodleStudio" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = DS6000000000000000000001;
+			productRefGroup = DS6000000000000000000004 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				DS3000000000000000000001 /* DoodleStudio */,
+				DS3000000000000000000002 /* DoodleStudioTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		DS8000000000000000000003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DS0000000000000000000027 /* Localizable.strings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		DS8000000000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DS0000000000000000000001 /* DoodleStudioApp.swift in Sources */,
+				DS0000000000000000000002 /* AppRootView.swift in Sources */,
+				DS0000000000000000000003 /* Colors.swift in Sources */,
+				DS0000000000000000000004 /* NeonGlowModifiers.swift in Sources */,
+				DS0000000000000000000005 /* HapticManager.swift in Sources */,
+				DS0000000000000000000006 /* SoundEffectManager.swift in Sources */,
+				DS0000000000000000000007 /* BrushTool.swift in Sources */,
+				DS0000000000000000000008 /* Point.swift in Sources */,
+				DS0000000000000000000009 /* CodableColor.swift in Sources */,
+				DS000000000000000000000A /* StrokeAction.swift in Sources */,
+				DS000000000000000000000B /* ActionLog.swift in Sources */,
+				DS000000000000000000000C /* Artwork.swift in Sources */,
+				DS000000000000000000000D /* StrokeInterpolator.swift in Sources */,
+				DS000000000000000000000E /* HistoryManager.swift in Sources */,
+				DS000000000000000000000F /* ActionLogPlayer.swift in Sources */,
+				DS0000000000000000000010 /* NeonStrokeRenderer.swift in Sources */,
+				DS0000000000000000000011 /* PNGExporter.swift in Sources */,
+				DS0000000000000000000012 /* TimelapseExporter.swift in Sources */,
+				DS0000000000000000000013 /* FileStore.swift in Sources */,
+				DS0000000000000000000014 /* ArtworkRepository.swift in Sources */,
+				DS0000000000000000000015 /* NeonLetteringView.swift in Sources */,
+				DS0000000000000000000016 /* NeonIconCard.swift in Sources */,
+				DS0000000000000000000017 /* MoreAppsRow.swift in Sources */,
+				DS0000000000000000000018 /* HomeView.swift in Sources */,
+				DS0000000000000000000019 /* CoralCircleButton.swift in Sources */,
+				DS000000000000000000001A /* BannerAdPlaceholder.swift in Sources */,
+				DS000000000000000000001B /* ShareActivityView.swift in Sources */,
+				DS000000000000000000001C /* NeonCanvasView.swift in Sources */,
+				DS000000000000000000001D /* NeonCanvasRepresentable.swift in Sources */,
+				DS000000000000000000001E /* DrawingToolbarView.swift in Sources */,
+				DS000000000000000000001F /* BrushPickerSheet.swift in Sources */,
+				DS0000000000000000000020 /* MoviePlaybackBar.swift in Sources */,
+				DS0000000000000000000021 /* ShareMenuOverlay.swift in Sources */,
+				DS0000000000000000000022 /* DrawViewModel.swift in Sources */,
+				DS0000000000000000000023 /* DrawView.swift in Sources */,
+				DS0000000000000000000024 /* MovieExportView.swift in Sources */,
+				DS0000000000000000000025 /* GalleryCardView.swift in Sources */,
+				DS0000000000000000000026 /* GalleryView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DS8000000000000000000002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DS0000000000000000000028 /* ActionLogTests.swift in Sources */,
+				DS0000000000000000000029 /* HistoryManagerTests.swift in Sources */,
+				DS000000000000000000002A /* ActionLogPlayerTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		DS2000000000000000000002 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = DS3000000000000000000001 /* DoodleStudio */;
+			targetProxy = DS2000000000000000000001 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		DS7000000000000000000011 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_FILE = Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.doodlestudio.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1";
+				CODE_SIGN_IDENTITY = "";
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGNING_ALLOWED = NO;
+			};
+			name = Debug;
+		};
+		DS7000000000000000000012 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_FILE = Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.doodlestudio.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1";
+				CODE_SIGN_IDENTITY = "";
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGNING_ALLOWED = NO;
+			};
+			name = Release;
+		};
+		DS7000000000000000000021 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.doodlestudio.appTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/DoodleStudio.app/DoodleStudio";
+				CODE_SIGN_IDENTITY = "";
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGNING_ALLOWED = NO;
+			};
+			name = Debug;
+		};
+		DS7000000000000000000022 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.doodlestudio.appTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/DoodleStudio.app/DoodleStudio";
+				CODE_SIGN_IDENTITY = "";
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGNING_ALLOWED = NO;
+			};
+			name = Release;
+		};
+		DS7000000000000000000031 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		DS7000000000000000000032 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_NO_COMMON_BLOCKS = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		DS7000000000000000000001 /* Build configuration list for PBXNativeTarget "DoodleStudio" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DS7000000000000000000011 /* Debug */,
+				DS7000000000000000000012 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		DS7000000000000000000002 /* Build configuration list for PBXNativeTarget "DoodleStudioTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DS7000000000000000000021 /* Debug */,
+				DS7000000000000000000022 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		DS7000000000000000000003 /* Build configuration list for PBXProject "DoodleStudio" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DS7000000000000000000031 /* Debug */,
+				DS7000000000000000000032 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+	};
+	rootObject = DS9000000000000000000001 /* Project object */;
+}
