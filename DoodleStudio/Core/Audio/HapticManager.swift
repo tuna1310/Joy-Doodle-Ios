@@ -1,31 +1,41 @@
 import UIKit
 
-final class HapticManager {
-    static let shared = HapticManager()
-    
+public final class HapticManager {
+    public static let shared = HapticManager()
+
     private let lightGenerator = UIImpactFeedbackGenerator(style: .light)
     private let mediumGenerator = UIImpactFeedbackGenerator(style: .medium)
     private let notificationGenerator = UINotificationFeedbackGenerator()
-    
+    private let selectionGenerator = UISelectionFeedbackGenerator()
+
     private init() {
         lightGenerator.prepare()
         mediumGenerator.prepare()
         notificationGenerator.prepare()
+        selectionGenerator.prepare()
     }
-    
-    func lightImpact() {
+
+    public func impact() {
+        mediumGenerator.impactOccurred(intensity: 0.6)
+    }
+
+    public func lightImpact() {
         lightGenerator.impactOccurred()
     }
-    
-    func mediumImpact() {
+
+    public func mediumImpact() {
         mediumGenerator.impactOccurred()
     }
-    
-    func success() {
+
+    public func success() {
         notificationGenerator.notificationOccurred(.success)
     }
-    
-    func warning() {
+
+    public func warning() {
         notificationGenerator.notificationOccurred(.warning)
+    }
+
+    public func selectionChanged() {
+        selectionGenerator.selectionChanged()
     }
 }

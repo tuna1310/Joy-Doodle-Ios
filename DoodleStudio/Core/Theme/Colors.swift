@@ -1,61 +1,36 @@
 import SwiftUI
 
-extension Color {
-    init(hex: String) {
-        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
-        var int: UInt64 = 0
-        Scanner(string: hex).scanHexInt64(&int)
-        let a, r, g, b: UInt64
-        switch hex.count {
-        case 3: // RGB (12-bit)
-            (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
-        case 6: // RGB (24-bit)
-            (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
-        case 8: // ARGB (32-bit)
-            (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
-        default:
-            (a, r, g, b) = (255, 0, 0, 0)
-        }
+// MARK: - App Colors (matches Android Color.kt)
+public enum AppColors {
+    public static let neonPink    = Color(UIColor(hex: 0xFFFF2D95))
+    public static let neonCyan    = Color(UIColor(hex: 0xFF00E5FF))
+    public static let neonGreen   = Color(UIColor(hex: 0xFF00E676))
+    public static let neonYellow  = Color(UIColor(hex: 0xFFFFEA00))
+    public static let neonOrange  = Color(UIColor(hex: 0xFFFF9100))
+    public static let neonPurple  = Color(UIColor(hex: 0xFF7C4DFF))
+    public static let neonBlue    = Color(UIColor(hex: 0xFF00B0FF))
+    public static let neonRed     = Color(UIColor(hex: 0xFFFF1744))
+    public static let coralButton = Color(UIColor(hex: 0xFFFF5252))
+    public static let tealButton  = Color(UIColor(hex: 0xFF009688))
+    public static let pinkButton  = Color(UIColor(hex: 0xFFE91E8C))
+    public static let denimBanner = Color(UIColor(hex: 0xFF1E5068))
+    public static let bannerDenim = Color(UIColor(hex: 0xFF1E5068))
 
-        self.init(
-            .sRGB,
-            red: Double(r) / 255,
-            green: Double(g) / 255,
-            blue: Double(b) / 255,
-            opacity: Double(a) / 255
-        )
-    }
-}
-
-enum AppColors {
-    static let homeBackground = Color(hex: "#000000")
-    static let drawBackground = Color(hex: "#000000")
-    static let galleryBackground = Color(hex: "#FAFAFA")
-    static let coralButton = Color(hex: "#EE6A6A")
-    static let bannerDenim = Color(hex: "#1E5068")
-    static let undoButton = Color(hex: "#6FE0D0")
-    static let playButton = Color(hex: "#3DB8F5")
-    static let shareButton = Color(hex: "#EE5060")
-    static let toolButtonBg = Color(hex: "#DDF1FA")
-    
-    // Neon palette
-    static let neonPink = Color(hex: "#FF2D95")
-    static let neonOrange = Color(hex: "#FF9F1C")
-    static let neonYellow = Color(hex: "#FFEE32")
-    static let neonGreen = Color(hex: "#39FF14")
-    static let neonCyan = Color(hex: "#00E5FF")
-    static let neonBlue = Color(hex: "#3D5AFE")
-    static let neonPurple = Color(hex: "#B517FF")
-    static let neonWhite = Color(hex: "#FFFFFF")
-    
-    static let defaultPalette: [Color] = [
-        neonPink,
-        neonOrange,
-        neonYellow,
-        neonGreen,
-        neonCyan,
-        neonBlue,
-        neonPurple,
-        neonWhite
+    // 20-color picker palette matching Android
+    public static let palette: [Color] = [
+        neonPink, neonCyan, neonGreen, neonYellow, neonOrange,
+        neonPurple, neonBlue, neonRed,
+        Color(UIColor(hex: 0xFFFFFFFF)),  // white
+        Color(UIColor(hex: 0xFF80D8FF)),  // light blue
+        Color(UIColor(hex: 0xFFFFD740)),  // gold
+        Color(UIColor(hex: 0xFF69F0AE)),  // mint
+        Color(UIColor(hex: 0xFFEA80FC)),  // lavender
+        Color(UIColor(hex: 0xFFFF6E40)),  // deep orange
+        Color(UIColor(hex: 0xFF40C4FF)),  // sky blue
+        Color(UIColor(hex: 0xFFCCFF90)),  // lime
+        Color(UIColor(hex: 0xFFFF4081)),  // hot pink
+        Color(UIColor(hex: 0xFFB2FF59)),  // yellow-green
+        Color(UIColor(hex: 0xFFE040FB)),  // fuchsia
+        Color(UIColor(hex: 0xFFFFD600))   // pure yellow
     ]
 }
