@@ -33,10 +33,11 @@ public struct NeonCanvasRepresentable: UIViewRepresentable {
 
     public func makeCoordinator() -> Coordinator { Coordinator(viewModel: viewModel) }
 
+    @MainActor
     public final class Coordinator: NSObject, NeonCanvasViewDelegate {
-        let viewModel: DrawViewModel
+        public let viewModel: DrawViewModel
 
-        init(viewModel: DrawViewModel) { self.viewModel = viewModel }
+        public init(viewModel: DrawViewModel) { self.viewModel = viewModel }
 
         public func canvasDidBeginDrawing() {
             viewModel.showBrushPicker = false

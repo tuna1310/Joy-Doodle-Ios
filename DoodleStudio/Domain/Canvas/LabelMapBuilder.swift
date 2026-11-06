@@ -257,14 +257,14 @@ public enum LabelMapBuilder {
         let colorSpace = CGColorSpaceCreateDeviceRGB()
         let bitmapInfo = CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue
 
-        guard let ctx = CGBitmapContextCreate(
-            &pixels,
-            width,
-            height,
-            8,
-            width * 4,
-            colorSpace,
-            bitmapInfo
+        guard let ctx = CGContext(
+            data: &pixels,
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bytesPerRow: width * 4,
+            space: colorSpace,
+            bitmapInfo: bitmapInfo
         ) else { return nil }
 
         ctx.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))

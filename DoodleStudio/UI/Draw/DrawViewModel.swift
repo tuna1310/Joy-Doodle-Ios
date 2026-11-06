@@ -153,9 +153,11 @@ public final class DrawViewModel: ObservableObject {
             guard let self = self else { return }
             let image = TemplateRepository.shared.loadTemplateImage(template)
 
-            var filler: RegionFiller? = nil
+            let filler: RegionFiller?
             if let img = image, let labelMap = LabelMapBuilder.buildFromImage(img, dilationPixels: 1) {
                 filler = RegionFiller(labelMapResult: labelMap)
+            } else {
+                filler = nil
             }
 
             await MainActor.run {

@@ -10,6 +10,7 @@ import CoreGraphics
 // 4. In-progress active stroke (live drawing)
 // 5. Template line-art overlay (topmost, never erased or covered)
 
+@MainActor
 public protocol NeonCanvasViewDelegate: AnyObject {
     func canvasDidCommitStroke(_ action: EditAction)
     func canvasDidBeginDrawing()
