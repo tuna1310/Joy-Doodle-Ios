@@ -16,22 +16,21 @@ jobs:
 
       - name: Select Xcode
         run: |
-          echo "Available Xcode installations:"
-          ls -d /Applications/Xcode*.app || true
-          # Note: Xcode 16.2 on macos-15 runner has no iOS platform/runtime pre-installed due to disk limits.
-          # Xcode 16.1 and 16.0 have iOS 18.1/18.0 runtimes pre-installed and ready.
-          if [ -d "/Applications/Xcode_16.1.app" ]; then
+          echo "Listing all installed Xcode apps:"
+          ls -la /Applications/ | grep -i xcode || true
+          # Prefer official default Xcode of the runner (/Applications/Xcode.app) which has full iOS runtimes
+          if [ -d "/Applications/Xcode.app" ]; then
+            echo "Selecting default Xcode (/Applications/Xcode.app)..."
+            sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          elif [ -d "/Applications/Xcode_16.4.app" ]; then
+            echo "Selecting Xcode 16.4..."
+            sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
+          elif [ -d "/Applications/Xcode_16.3.app" ]; then
+            echo "Selecting Xcode 16.3..."
+            sudo xcode-select -s /Applications/Xcode_16.3.app/Contents/Developer
+          elif [ -d "/Applications/Xcode_16.1.app" ]; then
             echo "Selecting Xcode 16.1..."
             sudo xcode-select -s /Applications/Xcode_16.1.app/Contents/Developer
-          elif [ -d "/Applications/Xcode_16.0.app" ]; then
-            echo "Selecting Xcode 16.0..."
-            sudo xcode-select -s /Applications/Xcode_16.0.app/Contents/Developer
-          elif [ -d "/Applications/Xcode_15.4.app" ]; then
-            echo "Selecting Xcode 15.4..."
-            sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
-          else
-            echo "Selecting default Xcode..."
-            sudo xcode-select -s $(ls -d /Applications/Xcode*.app | sort -V | tail -1)/Contents/Developer
           fi
           xcodebuild -version
           xcodebuild -showsdks
@@ -138,22 +137,21 @@ jobs:
 
       - name: Select Xcode
         run: |
-          echo "Available Xcode installations:"
-          ls -d /Applications/Xcode*.app || true
-          # Note: Xcode 16.2 on macos-15 runner has no iOS platform/runtime pre-installed due to disk limits.
-          # Xcode 16.1 and 16.0 have iOS 18.1/18.0 runtimes pre-installed and ready.
-          if [ -d "/Applications/Xcode_16.1.app" ]; then
+          echo "Listing all installed Xcode apps:"
+          ls -la /Applications/ | grep -i xcode || true
+          # Prefer official default Xcode of the runner (/Applications/Xcode.app) which has full iOS runtimes
+          if [ -d "/Applications/Xcode.app" ]; then
+            echo "Selecting default Xcode (/Applications/Xcode.app)..."
+            sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          elif [ -d "/Applications/Xcode_16.4.app" ]; then
+            echo "Selecting Xcode 16.4..."
+            sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
+          elif [ -d "/Applications/Xcode_16.3.app" ]; then
+            echo "Selecting Xcode 16.3..."
+            sudo xcode-select -s /Applications/Xcode_16.3.app/Contents/Developer
+          elif [ -d "/Applications/Xcode_16.1.app" ]; then
             echo "Selecting Xcode 16.1..."
             sudo xcode-select -s /Applications/Xcode_16.1.app/Contents/Developer
-          elif [ -d "/Applications/Xcode_16.0.app" ]; then
-            echo "Selecting Xcode 16.0..."
-            sudo xcode-select -s /Applications/Xcode_16.0.app/Contents/Developer
-          elif [ -d "/Applications/Xcode_15.4.app" ]; then
-            echo "Selecting Xcode 15.4..."
-            sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
-          else
-            echo "Selecting default Xcode..."
-            sudo xcode-select -s $(ls -d /Applications/Xcode*.app | sort -V | tail -1)/Contents/Developer
           fi
           xcodebuild -version
           xcodebuild -showsdks
@@ -194,7 +192,7 @@ jobs:
 
           # 2. If archive output was not generated, fallback to direct device build
           if [ ! -d "build_archive/DoodleStudio.xcarchive/Products/Applications/DoodleStudio.app" ]; then
-            echo "Notice: Falling back to direct iphoneos Release build..."
+            echo "Notice: Archive packaging didn't produce DoodleStudio.app, performing direct iphoneos Release build..."
             xcodebuild build \
               -project DoodleStudio.xcodeproj \
               -scheme DoodleStudio \
