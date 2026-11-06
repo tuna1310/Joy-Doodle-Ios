@@ -1,11 +1,16 @@
 import SwiftUI
 import UIKit
 
-struct ShareActivityView: UIViewControllerRepresentable {
-    var activityItems: [Any]
-    var applicationActivities: [UIActivity]? = nil
+public struct ShareActivityView: UIViewControllerRepresentable {
+    public var activityItems: [Any]
+    public var applicationActivities: [UIActivity]? = nil
     
-    func makeUIViewController(context: Context) -> UIActivityViewController {
+    public init(activityItems: [Any], applicationActivities: [UIActivity]? = nil) {
+        self.activityItems = activityItems
+        self.applicationActivities = applicationActivities
+    }
+    
+    public func makeUIViewController(context: Context) -> UIActivityViewController {
         let controller = UIActivityViewController(
             activityItems: activityItems,
             applicationActivities: applicationActivities
@@ -13,5 +18,13 @@ struct ShareActivityView: UIViewControllerRepresentable {
         return controller
     }
     
-    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+    public func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+}
+
+public typealias ShareSheet = ShareActivityView
+
+public extension ShareSheet {
+    init(items: [Any], applicationActivities: [UIActivity]? = nil) {
+        self.init(activityItems: items, applicationActivities: applicationActivities)
+    }
 }

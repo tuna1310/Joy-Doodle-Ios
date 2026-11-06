@@ -134,7 +134,7 @@ struct GalleryArtworkCard: View {
             }
             .aspectRatio(0.72, contentMode: .fit)
         }
-        .buttonStyle(PressAnimButtonStyle(isPressed: .constant(false)))
+        .buttonStyle(PressAnimButtonStyle())
         .contextMenu {
             Button(role: .destructive, action: onDelete) {
                 Label("Xóa tranh", systemImage: "trash")
@@ -180,6 +180,6 @@ struct GalleryPromoAppCard: View {
             }
             .aspectRatio(0.72, contentMode: .fit)
         }
-        .buttonStyle(PressAnimButtonStyle(isPressed: .constant(false)))
+        .buttonStyle(PressAnimButtonStyle())
     }
 }

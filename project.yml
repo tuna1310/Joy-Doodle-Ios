@@ -8,6 +8,11 @@ settings:
     SWIFT_VERSION: "5.9"
     IPHONEOS_DEPLOYMENT_TARGET: "16.0"
     TARGETED_DEVICE_FAMILY: "1"
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: ""
+    CODE_SIGNING_REQUIRED: "NO"
+    CODE_SIGNING_ALLOWED: "NO"
+    AD_HOC_CODE_SIGNING_ALLOWED: "YES"
 packages:
   GoogleMobileAds:
     url: https://github.com/googleads/swift-package-manager-google-mobile-ads.git
@@ -25,9 +30,12 @@ targets:
       PRODUCT_BUNDLE_IDENTIFIER: com.doodlestudio.app
       INFOPLIST_FILE: Info.plist
       GENERATE_INFOPLIST_KEY_UILaunchScreen_Generation: YES
+      CODE_SIGN_STYLE: Manual
       CODE_SIGN_IDENTITY: ""
       CODE_SIGNING_REQUIRED: "NO"
       CODE_SIGNING_ALLOWED: "NO"
+      AD_HOC_CODE_SIGNING_ALLOWED: "YES"
+      DEVELOPMENT_TEAM: ""
     dependencies:
       - package: GoogleMobileAds
   DoodleStudioTests:
@@ -36,5 +44,10 @@ targets:
     deploymentTarget: "16.0"
     sources:
       - path: DoodleStudioTests
+    settings:
+      CODE_SIGN_STYLE: Manual
+      CODE_SIGN_IDENTITY: ""
+      CODE_SIGNING_REQUIRED: "NO"
+      CODE_SIGNING_ALLOWED: "NO"
     dependencies:
       - target: DoodleStudio

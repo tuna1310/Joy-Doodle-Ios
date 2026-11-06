@@ -194,9 +194,9 @@ extension BrushEffect {
     }
 }
 
-// MARK: - CGFloat clamp helper
-extension CGFloat {
-    func clamped(_ lo: CGFloat, _ hi: CGFloat) -> CGFloat {
+// MARK: - Comparable clamp helper
+extension Comparable {
+    func clamped(_ lo: Self, _ hi: Self) -> Self {
         Swift.min(Swift.max(self, lo), hi)
     }
 }
