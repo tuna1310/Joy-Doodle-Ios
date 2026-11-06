@@ -16,14 +16,26 @@ jobs:
 
       - name: Select Xcode
         run: |
-          # List available Xcode versions on macos-15 runner
-          ls /Applications/ | grep -i xcode || true
-          sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer || \
-          sudo xcode-select -s /Applications/Xcode_16.1.app/Contents/Developer || \
-          sudo xcode-select -s /Applications/Xcode_16.0.app/Contents/Developer || \
-          sudo xcode-select -s $(ls -d /Applications/Xcode*.app | sort -V | tail -1)/Contents/Developer
+          echo "Available Xcode installations:"
+          ls -d /Applications/Xcode*.app || true
+          # Note: Xcode 16.2 on macos-15 runner has no iOS platform/runtime pre-installed due to disk limits.
+          # Xcode 16.1 and 16.0 have iOS 18.1/18.0 runtimes pre-installed and ready.
+          if [ -d "/Applications/Xcode_16.1.app" ]; then
+            echo "Selecting Xcode 16.1..."
+            sudo xcode-select -s /Applications/Xcode_16.1.app/Contents/Developer
+          elif [ -d "/Applications/Xcode_16.0.app" ]; then
+            echo "Selecting Xcode 16.0..."
+            sudo xcode-select -s /Applications/Xcode_16.0.app/Contents/Developer
+          elif [ -d "/Applications/Xcode_15.4.app" ]; then
+            echo "Selecting Xcode 15.4..."
+            sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
+          else
+            echo "Selecting default Xcode..."
+            sudo xcode-select -s $(ls -d /Applications/Xcode*.app | sort -V | tail -1)/Contents/Developer
+          fi
           xcodebuild -version
           xcodebuild -showsdks
+          xcrun simctl list runtimes || true
 
       - name: Install XcodeGen
         run: brew install xcodegen
@@ -46,9 +58,10 @@ jobs:
             -project DoodleStudio.xcodeproj \
             -scheme DoodleStudio \
             -sdk iphonesimulator \
-            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            -destination 'generic/platform=iOS Simulator' \
             -configuration Debug \
             -derivedDataPath build_sim \
+            CODE_SIGN_STYLE=Manual \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
@@ -60,13 +73,22 @@ jobs:
         id: test
         run: |
           set -o pipefail
+          # Find first available iPhone simulator device ID
+          SIM_ID=$(xcrun simctl list devices available | grep -m 1 -E "iPhone (16|15|14)" | sed -E 's/.*\(([-A-F0-9]+)\).*/\1/' || true)
+          if [ -n "$SIM_ID" ]; then
+            DEST="platform=iOS Simulator,id=$SIM_ID"
+          else
+            DEST="platform=iOS Simulator,name=iPhone 16"
+          fi
+          echo "Running tests on destination: $DEST"
           xcodebuild test \
             -project DoodleStudio.xcodeproj \
             -scheme DoodleStudio \
             -sdk iphonesimulator \
-            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            -destination "$DEST" \
             -configuration Debug \
             -derivedDataPath build_sim \
+            CODE_SIGN_STYLE=Manual \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
@@ -116,12 +138,23 @@ jobs:
 
       - name: Select Xcode
         run: |
-          # List available Xcode versions on macos-15 runner
-          ls /Applications/ | grep -i xcode || true
-          sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer || \
-          sudo xcode-select -s /Applications/Xcode_16.1.app/Contents/Developer || \
-          sudo xcode-select -s /Applications/Xcode_16.0.app/Contents/Developer || \
-          sudo xcode-select -s $(ls -d /Applications/Xcode*.app | sort -V | tail -1)/Contents/Developer
+          echo "Available Xcode installations:"
+          ls -d /Applications/Xcode*.app || true
+          # Note: Xcode 16.2 on macos-15 runner has no iOS platform/runtime pre-installed due to disk limits.
+          # Xcode 16.1 and 16.0 have iOS 18.1/18.0 runtimes pre-installed and ready.
+          if [ -d "/Applications/Xcode_16.1.app" ]; then
+            echo "Selecting Xcode 16.1..."
+            sudo xcode-select -s /Applications/Xcode_16.1.app/Contents/Developer
+          elif [ -d "/Applications/Xcode_16.0.app" ]; then
+            echo "Selecting Xcode 16.0..."
+            sudo xcode-select -s /Applications/Xcode_16.0.app/Contents/Developer
+          elif [ -d "/Applications/Xcode_15.4.app" ]; then
+            echo "Selecting Xcode 15.4..."
+            sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
+          else
+            echo "Selecting default Xcode..."
+            sudo xcode-select -s $(ls -d /Applications/Xcode*.app | sort -V | tail -1)/Contents/Developer
+          fi
           xcodebuild -version
           xcodebuild -showsdks
 
