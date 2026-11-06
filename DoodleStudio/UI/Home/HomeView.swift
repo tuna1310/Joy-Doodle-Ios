@@ -104,8 +104,6 @@ struct HomeCardButton<Content: View>: View {
     let borderColor: Color
     let action: () -> Void
 
-    @State private var isPressed = false
-
     var body: some View {
         Button(action: {
             HapticManager.shared.impact()
@@ -122,14 +120,12 @@ struct HomeCardButton<Content: View>: View {
                         .shadow(color: borderColor.opacity(0.85), radius: 12)
                         .shadow(color: borderColor.opacity(0.4), radius: 22)
                 )
-                .scaleEffect(isPressed ? 0.92 : 1.0)
 
                 // Multicolor Neon Lettering
                 HomeNeonTextView(text: label, colors: labelColors, fontSize: 32)
             }
         }
-        .buttonStyle(PressAnimButtonStyle(isPressed: $isPressed))
-        .animation(.spring(response: 0.25, dampingFraction: 0.55), value: isPressed)
+        .buttonStyle(PressAnimButtonStyle())
     }
 }
 
@@ -302,7 +298,7 @@ struct HomeMoreAppsRow: View {
                     }) {
                         PromoAppIconView(iconType: app.iconType, size: 54)
                     }
-                    .buttonStyle(PressAnimButtonStyle(isPressed: .constant(false)))
+                    .buttonStyle(PressAnimButtonStyle())
                 }
             }
             .padding(.horizontal, 16)
@@ -372,15 +368,4 @@ struct AdFreeSheet: View {
     }
 }
 
-// MARK: - Press Animation Button Style
-struct PressAnimButtonStyle: ButtonStyle {
-    @Binding var isPressed: Bool
 
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.92 : 1.0)
-            .onChange(of: configuration.isPressed) { val in
-                isPressed = val
-            }
-    }
-}

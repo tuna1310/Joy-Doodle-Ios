@@ -250,7 +250,6 @@ struct ToolButton: View {
     let bgColor: Color
     let isActive: Bool
     let action: () -> Void
-    @State private var isPressed = false
 
     var body: some View {
         Button(action: {
@@ -267,10 +266,8 @@ struct ToolButton: View {
                     Circle().stroke(Color.white.opacity(isActive ? 0.9 : 0), lineWidth: 2)
                 )
                 .shadow(color: bgColor.opacity(0.5), radius: 6)
-                .scaleEffect(isPressed ? 0.9 : 1.0)
         }
-        .buttonStyle(PressButtonStyle(isPressed: $isPressed))
-        .animation(.spring(response: 0.2, dampingFraction: 0.6), value: isPressed)
+        .buttonStyle(PressAnimButtonStyle())
     }
 }
 
@@ -474,18 +471,15 @@ struct BrushCard: View {
     }
 
     private func generatePreview() {
-        Task.detached(priority: .background) {
-            let size = CGSize(width: 64, height: 64)
-            UIGraphicsBeginImageContextWithOptions(size, true, 2)
-            if let ctx = UIGraphicsGetCurrentContext() {
-                ctx.setFillColor(UIColor.black.cgColor)
-                ctx.fill(CGRect(origin: .zero, size: size))
-                brush.drawPreview(ctx: ctx, width: size.width, height: size.height)
-            }
-            let img = UIGraphicsGetImageFromCurrentImageContext()
-            UIGraphicsEndImageContext()
-            await MainActor.run { self.preview = img }
+        let size = CGSize(width: 64, height: 64)
+        let renderer = UIGraphicsImageRenderer(size: size)
+        let img = renderer.image { format in
+            let ctx = format.cgContext
+            ctx.setFillColor(UIColor.black.cgColor)
+            ctx.fill(CGRect(origin: .zero, size: size))
+            brush.drawPreview(ctx: ctx, width: size.width, height: size.height)
         }
+        self.preview = img
     }
 }
 

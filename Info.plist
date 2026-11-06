@@ -44,8 +44,8 @@
 	<string>Joy Doodle needs camera permission to capture background photos to draw on.</string>
 	<key>NSUserTrackingUsageDescription</key>
 	<string>Joy Doodle uses tracking to deliver personalized ads and keep the drawing experience free.</string>
-	<key>GADApplicationIdentifier</key>
 	<!-- TODO: Replace with real AdMob App ID before release: https://admob.google.com -->
+	<key>GADApplicationIdentifier</key>
 	<string>ca-app-pub-3940256099942544~1458002511</string>
 	<key>SKAdNetworkItems</key>
 	<array>

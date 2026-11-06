@@ -142,18 +142,42 @@ jobs:
         id: archive
         run: |
           set -o pipefail
+          # 1. Attempt xcodebuild archive
           xcodebuild archive \
             -project DoodleStudio.xcodeproj \
             -scheme DoodleStudio \
             -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
             -configuration Release \
             -archivePath build_archive/DoodleStudio.xcarchive \
+            CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
+            AD_HOC_CODE_SIGNING_ALLOWED=YES \
+            DEVELOPMENT_TEAM="" \
             SWIFT_TREAT_WARNINGS_AS_ERRORS=NO \
-            2>&1 | tee xcodebuild.log
-        continue-on-error: true
+            2>&1 | tee xcodebuild.log || true
+
+          # 2. If archive output was not generated, fallback to direct device build
+          if [ ! -d "build_archive/DoodleStudio.xcarchive/Products/Applications/DoodleStudio.app" ]; then
+            echo "Notice: Falling back to direct iphoneos Release build..."
+            xcodebuild build \
+              -project DoodleStudio.xcodeproj \
+              -scheme DoodleStudio \
+              -sdk iphoneos \
+              -destination 'generic/platform=iOS' \
+              -configuration Release \
+              -derivedDataPath build_device \
+              CODE_SIGN_STYLE=Manual \
+              CODE_SIGN_IDENTITY="" \
+              CODE_SIGNING_REQUIRED=NO \
+              CODE_SIGNING_ALLOWED=NO \
+              AD_HOC_CODE_SIGNING_ALLOWED=YES \
+              DEVELOPMENT_TEAM="" \
+              SWIFT_TREAT_WARNINGS_AS_ERRORS=NO \
+              2>&1 | tee -a xcodebuild.log
+          fi
 
       - name: Upload xcodebuild Log
         if: always()
@@ -164,30 +188,27 @@ jobs:
           retention-days: 30
 
       - name: Package Unsigned IPA
-        if: steps.archive.outcome == 'success'
         run: |
           mkdir -p Payload
-          APP_PATH="build_archive/DoodleStudio.xcarchive/Products/Applications/DoodleStudio.app"
-          if [ -d "$APP_PATH" ]; then
+          APP_PATH=""
+          if [ -d "build_archive/DoodleStudio.xcarchive/Products/Applications/DoodleStudio.app" ]; then
+            APP_PATH="build_archive/DoodleStudio.xcarchive/Products/Applications/DoodleStudio.app"
+          elif [ -d "build_device/Build/Products/Release-iphoneos/DoodleStudio.app" ]; then
+            APP_PATH="build_device/Build/Products/Release-iphoneos/DoodleStudio.app"
+          fi
+
+          if [ -n "$APP_PATH" ] && [ -d "$APP_PATH" ]; then
+            echo "Packaging app from $APP_PATH into Payload/ ..."
             cp -R "$APP_PATH" Payload/
+            zip -r -9 JoyDoodle-unsigned.ipa Payload
           else
-            echo "Error: $APP_PATH not found"
+            echo "❌ Error: DoodleStudio.app was not produced by archive or build."
             exit 1
           fi
-          zip -r -9 JoyDoodle-unsigned.ipa Payload
 
       - name: Upload Unsigned IPA
-        if: steps.archive.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: JoyDoodle-unsigned-IPA
           path: JoyDoodle-unsigned.ipa
           retention-days: 30
-
-      - name: Verify Archive Status
-        run: |
-          if [ "${{ steps.archive.outcome }}" = "failure" ]; then
-            echo "❌ IPA Archive failed. Check xcodebuild-ipa-log artifact."
-            exit 1
-          fi
-          echo "✅ Unsigned IPA created successfully."

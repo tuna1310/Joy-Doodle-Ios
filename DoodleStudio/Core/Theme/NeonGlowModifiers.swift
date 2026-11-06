@@ -59,17 +59,20 @@ extension View {
     }
 }
 
-struct NeonPressableButtonStyle: ButtonStyle {
-    var hapticOnClick: Bool = true
-    
-    func makeBody(configuration: Configuration) -> some View {
+public struct NeonPressableButtonStyle: ButtonStyle {
+    public init() {}
+    public func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.94 : 1.0)
             .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
-            .onChange(of: configuration.isPressed) { isPressed in
-                if isPressed && hapticOnClick {
-                    HapticManager.shared.lightImpact()
-                }
-            }
+    }
+}
+
+public struct PressAnimButtonStyle: ButtonStyle {
+    public init() {}
+    public func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.92 : 1.0)
+            .animation(.spring(response: 0.25, dampingFraction: 0.55), value: configuration.isPressed)
     }
 }
