@@ -43,6 +43,44 @@ public protocol BrushEffect {
 
 extension BrushEffect {
 
+    // MARK: Two-pass neon path (fast reduced-quality pass for 60fps live drawing)
+    func drawTwoPassNeonPath(
+        ctx: CGContext,
+        path: CGPath,
+        color: UIColor,
+        strokeWidth: CGFloat,
+        alpha: CGFloat
+    ) {
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        color.getRed(&r, green: &g, blue: &b, alpha: &a)
+        let baseAlpha = alpha.clamped(0, 1)
+
+        // Pass 1: Diffused glow
+        ctx.saveGState()
+        ctx.addPath(path)
+        ctx.setLineWidth(strokeWidth * 1.8)
+        ctx.setLineCap(.round)
+        ctx.setLineJoin(.round)
+        ctx.setShadow(offset: .zero, blur: (strokeWidth * 0.8).clamped(1, 999),
+                      color: UIColor(red: r, green: g, blue: b, alpha: baseAlpha * 0.55).cgColor)
+        ctx.setStrokeColor(UIColor(red: r, green: g, blue: b, alpha: baseAlpha * 0.55).cgColor)
+        ctx.strokePath()
+        ctx.restoreGState()
+
+        // Pass 2: White-hot core
+        let coreR = (r * 0.25 + 0.75).clamped(0, 1)
+        let coreG = (g * 0.25 + 0.75).clamped(0, 1)
+        let coreB = (b * 0.25 + 0.75).clamped(0, 1)
+        ctx.saveGState()
+        ctx.addPath(path)
+        ctx.setLineWidth(strokeWidth * 0.55)
+        ctx.setLineCap(.round)
+        ctx.setLineJoin(.round)
+        ctx.setStrokeColor(UIColor(red: coreR, green: coreG, blue: coreB, alpha: baseAlpha * 0.95).cgColor)
+        ctx.strokePath()
+        ctx.restoreGState()
+    }
+
     // MARK: Three-pass neon path (outer glow + inner glow + white-hot core)
     func drawThreePassNeonPath(
         ctx: CGContext,

@@ -14,13 +14,13 @@ public final class ClassicNeonBrush: BrushEffect {
     public let defaultSize: CGFloat = 14
 
     public func drawLive(ctx: CGContext, points: [PointF], color: UIColor, strokeWidth: CGFloat, alpha: CGFloat, scaleX: CGFloat, scaleY: CGFloat, seed: Int64) {
-        drawStroke(ctx: ctx, points: points, color: color, strokeWidth: strokeWidth, alpha: alpha, scaleX: scaleX, scaleY: scaleY)
+        drawStroke(ctx: ctx, points: points, color: color, strokeWidth: strokeWidth, alpha: alpha, scaleX: scaleX, scaleY: scaleY, isLive: true)
     }
     public func drawCommitted(ctx: CGContext, points: [PointF], color: UIColor, strokeWidth: CGFloat, alpha: CGFloat, scaleX: CGFloat, scaleY: CGFloat, seed: Int64) {
-        drawStroke(ctx: ctx, points: points, color: color, strokeWidth: strokeWidth, alpha: alpha, scaleX: scaleX, scaleY: scaleY)
+        drawStroke(ctx: ctx, points: points, color: color, strokeWidth: strokeWidth, alpha: alpha, scaleX: scaleX, scaleY: scaleY, isLive: false)
     }
 
-    private func drawStroke(ctx: CGContext, points: [PointF], color: UIColor, strokeWidth: CGFloat, alpha: CGFloat, scaleX: CGFloat, scaleY: CGFloat) {
+    private func drawStroke(ctx: CGContext, points: [PointF], color: UIColor, strokeWidth: CGFloat, alpha: CGFloat, scaleX: CGFloat, scaleY: CGFloat, isLive: Bool) {
         guard !points.isEmpty else { return }
         if points.count == 1 {
             let p = points[0]
@@ -28,7 +28,11 @@ public final class ClassicNeonBrush: BrushEffect {
             return
         }
         guard let path = buildNeonPath(points: points, scaleX: scaleX, scaleY: scaleY) else { return }
-        drawThreePassNeonPath(ctx: ctx, path: path, color: color, strokeWidth: strokeWidth, alpha: alpha)
+        if isLive {
+            drawTwoPassNeonPath(ctx: ctx, path: path, color: color, strokeWidth: strokeWidth, alpha: alpha)
+        } else {
+            drawThreePassNeonPath(ctx: ctx, path: path, color: color, strokeWidth: strokeWidth, alpha: alpha)
+        }
     }
 
     public func drawPreview(ctx: CGContext, width: CGFloat, height: CGFloat) {
@@ -47,29 +51,58 @@ public final class RainbowGlowBrush: BrushEffect {
     public let displayNameVi = "Neon cầu vồng"
     public let defaultSize: CGFloat = 14
 
-    public func drawLive(ctx: CGContext, points: [PointF], color: UIColor, strokeWidth: CGFloat, alpha: CGFloat, scaleX: CGFloat, scaleY: CGFloat, seed: Int64) {
-        drawRainbow(ctx: ctx, points: points, strokeWidth: strokeWidth, alpha: alpha, scaleX: scaleX, scaleY: scaleY, seed: seed)
-    }
-    public func drawCommitted(ctx: CGContext, points: [PointF], color: UIColor, strokeWidth: CGFloat, alpha: CGFloat, scaleX: CGFloat, scaleY: CGFloat, seed: Int64) {
-        drawRainbow(ctx: ctx, points: points, strokeWidth: strokeWidth, alpha: alpha, scaleX: scaleX, scaleY: scaleY, seed: seed)
+    // Pre-computed rainbow palette (128 colors)
+    private static let rainbowPalette: [UIColor] = (0..<128).map { i in
+        UIColor(hue: CGFloat(i) / 128.0, saturation: 1.0, brightness: 1.0, alpha: 1.0)
     }
 
-    private func drawRainbow(ctx: CGContext, points: [PointF], strokeWidth: CGFloat, alpha: CGFloat, scaleX: CGFloat, scaleY: CGFloat, seed: Int64) {
+    public func drawLive(ctx: CGContext, points: [PointF], color: UIColor, strokeWidth: CGFloat, alpha: CGFloat, scaleX: CGFloat, scaleY: CGFloat, seed: Int64) {
+        drawRainbow(ctx: ctx, points: points, strokeWidth: strokeWidth, alpha: alpha, scaleX: scaleX, scaleY: scaleY, seed: seed, isLive: true)
+    }
+    public func drawCommitted(ctx: CGContext, points: [PointF], color: UIColor, strokeWidth: CGFloat, alpha: CGFloat, scaleX: CGFloat, scaleY: CGFloat, seed: Int64) {
+        drawRainbow(ctx: ctx, points: points, strokeWidth: strokeWidth, alpha: alpha, scaleX: scaleX, scaleY: scaleY, seed: seed, isLive: false)
+    }
+
+    private func drawRainbow(ctx: CGContext, points: [PointF], strokeWidth: CGFloat, alpha: CGFloat, scaleX: CGFloat, scaleY: CGFloat, seed: Int64, isLive: Bool) {
         guard !points.isEmpty else { return }
         if points.count == 1 {
-            let hue = CGFloat(seed % 360) / 360.0
-            let c = UIColor(hue: hue, saturation: 1, brightness: 1, alpha: 1)
-            ClassicNeonBrush().drawLive(ctx: ctx, points: points, color: c, strokeWidth: strokeWidth, alpha: alpha, scaleX: scaleX, scaleY: scaleY, seed: seed)
+            let colorIdx = Int(abs(seed % 128))
+            let c = Self.rainbowPalette[colorIdx]
+            drawNeonDot(ctx: ctx, x: CGFloat(points[0].x) * scaleX, y: CGFloat(points[0].y) * scaleY, color: c, strokeWidth: strokeWidth, alpha: alpha)
             return
         }
-        for i in 0..<points.count - 1 {
-            let p1 = points[i]; let p2 = points[i + 1]
-            let hue = CGFloat(((seed % 360) + Int64(i) * 14) % 360) / 360.0
-            let segColor = UIColor(hue: hue, saturation: 1, brightness: 1, alpha: 1)
-            let path = CGMutablePath()
-            path.move(to: CGPoint(x: CGFloat(p1.x) * scaleX, y: CGFloat(p1.y) * scaleY))
-            path.addLine(to: CGPoint(x: CGFloat(p2.x) * scaleX, y: CGFloat(p2.y) * scaleY))
-            drawThreePassNeonPath(ctx: ctx, path: path, color: segColor, strokeWidth: strokeWidth, alpha: alpha)
+
+        // Chunk points into segments of 14 points (or min 2) to avoid hundreds of shadow passes
+        let chunkSize = 14
+        let baseSeed = Int(abs(seed % 128))
+        var i = 0
+        let total = points.count
+
+        while i < total - 1 {
+            let end = min(i + chunkSize, total - 1)
+            let chunk = Array(points[i...end])
+            let colorIdx = (baseSeed + i * 5) % 128
+            let segColor = Self.rainbowPalette[colorIdx]
+
+            if chunk.count == 2 {
+                let p1 = chunk[0]; let p2 = chunk[1]
+                let path = CGMutablePath()
+                path.move(to: CGPoint(x: CGFloat(p1.x) * scaleX, y: CGFloat(p1.y) * scaleY))
+                path.addLine(to: CGPoint(x: CGFloat(p2.x) * scaleX, y: CGFloat(p2.y) * scaleY))
+                if isLive {
+                    drawTwoPassNeonPath(ctx: ctx, path: path, color: segColor, strokeWidth: strokeWidth, alpha: alpha)
+                } else {
+                    drawThreePassNeonPath(ctx: ctx, path: path, color: segColor, strokeWidth: strokeWidth, alpha: alpha)
+                }
+            } else if let path = buildNeonPath(points: chunk, scaleX: scaleX, scaleY: scaleY) {
+                if isLive {
+                    drawTwoPassNeonPath(ctx: ctx, path: path, color: segColor, strokeWidth: strokeWidth, alpha: alpha)
+                } else {
+                    drawThreePassNeonPath(ctx: ctx, path: path, color: segColor, strokeWidth: strokeWidth, alpha: alpha)
+                }
+            }
+
+            i = end
         }
     }
 
@@ -287,13 +320,13 @@ public final class CrayonChalkBrush: BrushEffect {
     public let defaultSize: CGFloat = 18
 
     public func drawLive(ctx: CGContext, points: [PointF], color: UIColor, strokeWidth: CGFloat, alpha: CGFloat, scaleX: CGFloat, scaleY: CGFloat, seed: Int64) {
-        drawCrayon(ctx: ctx, points: points, color: color, strokeWidth: strokeWidth, alpha: alpha, scaleX: scaleX, scaleY: scaleY, seed: seed)
+        drawCrayon(ctx: ctx, points: points, color: color, strokeWidth: strokeWidth, alpha: alpha, scaleX: scaleX, scaleY: scaleY, seed: seed, isLive: true)
     }
     public func drawCommitted(ctx: CGContext, points: [PointF], color: UIColor, strokeWidth: CGFloat, alpha: CGFloat, scaleX: CGFloat, scaleY: CGFloat, seed: Int64) {
-        drawCrayon(ctx: ctx, points: points, color: color, strokeWidth: strokeWidth, alpha: alpha, scaleX: scaleX, scaleY: scaleY, seed: seed)
+        drawCrayon(ctx: ctx, points: points, color: color, strokeWidth: strokeWidth, alpha: alpha, scaleX: scaleX, scaleY: scaleY, seed: seed, isLive: false)
     }
 
-    private func drawCrayon(ctx: CGContext, points: [PointF], color: UIColor, strokeWidth: CGFloat, alpha: CGFloat, scaleX: CGFloat, scaleY: CGFloat, seed: Int64) {
+    private func drawCrayon(ctx: CGContext, points: [PointF], color: UIColor, strokeWidth: CGFloat, alpha: CGFloat, scaleX: CGFloat, scaleY: CGFloat, seed: Int64, isLive: Bool) {
         guard !points.isEmpty else { return }
         var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
         color.getRed(&r, green: &g, blue: &b, alpha: &a)
@@ -331,20 +364,22 @@ public final class CrayonChalkBrush: BrushEffect {
         ctx.setLineWidth(strokeWidth * 0.85); ctx.setLineCap(.round)
         ctx.addPath(path); ctx.strokePath()
 
-        // Grain specks
-        let segs = StrokeInterpolator.interpolateToSegments(points)
-        var rnd = (seed ^ 0x5DEECE66D) & 0xFFFFFFFFFFFF
-        ctx.setFillColor(UIColor(red: 1, green: 1, blue: 1, alpha: ba * 0.75).cgColor)
-        for seg in segs {
-            for step in 1...3 {
-                let t = Float(step) / 4.0
-                let pt = StrokeInterpolator.sampleQuad(seg, t: t)
-                rnd = (rnd * 0x5DEECE66D + 0xB) & 0xFFFFFFFFFFFF
-                let off = CGFloat(((rnd >> 16) % 100)) / 100.0 - 0.5
-                let rad = CGFloat(max(1, (rnd >> 32) % 3)) * 0.8
-                let ox = CGFloat(pt.x) * scaleX + off * strokeWidth * 0.8
-                let oy = CGFloat(pt.y) * scaleY + off * strokeWidth * 0.8
-                ctx.fillEllipse(in: CGRect(x: ox - rad, y: oy - rad, width: rad*2, height: rad*2))
+        // Grain specks only when committed or sparsely when live to ensure 60fps
+        if !isLive {
+            let segs = StrokeInterpolator.interpolateToSegments(points)
+            var rnd = (seed ^ 0x5DEECE66D) & 0xFFFFFFFFFFFF
+            ctx.setFillColor(UIColor(red: 1, green: 1, blue: 1, alpha: ba * 0.75).cgColor)
+            for seg in segs {
+                for step in 1...3 {
+                    let t = Float(step) / 4.0
+                    let pt = StrokeInterpolator.sampleQuad(seg, t: t)
+                    rnd = (rnd * 0x5DEECE66D + 0xB) & 0xFFFFFFFFFFFF
+                    let off = CGFloat(((rnd >> 16) % 100)) / 100.0 - 0.5
+                    let rad = CGFloat(max(1, (rnd >> 32) % 3)) * 0.8
+                    let ox = CGFloat(pt.x) * scaleX + off * strokeWidth * 0.8
+                    let oy = CGFloat(pt.y) * scaleY + off * strokeWidth * 0.8
+                    ctx.fillEllipse(in: CGRect(x: ox - rad, y: oy - rad, width: rad*2, height: rad*2))
+                }
             }
         }
     }
@@ -487,7 +522,9 @@ public final class DottedPearlBrush: BrushEffect {
 
             var segRemaining = segLen; var fromX = prevX; var fromY = prevY
             while distAcc + segRemaining >= stepDist {
-                let need = stepDist - distAcc; let t = need / segRemaining
+                guard segRemaining > 0.0001 else { break }
+                let need = stepDist - distAcc
+                let t = min(1.0, max(0.0, need / segRemaining))
                 let beadX = fromX + (curX - fromX) * t; let beadY = fromY + (curY - fromY) * t
                 drawSinglePearl(beadX, beadY, beadIdx); beadIdx += 1
                 fromX = beadX; fromY = beadY; segRemaining -= need; distAcc = 0
@@ -641,7 +678,9 @@ public final class ConcentricRingsBrush: BrushEffect {
             guard segLen > 0.001 else { continue }
             var segRemaining = segLen; var fromX = prevX; var fromY = prevY
             while distAcc + segRemaining >= stepDist {
-                let need = stepDist - distAcc; let t = need / segRemaining
+                guard segRemaining > 0.0001 else { break }
+                let need = stepDist - distAcc
+                let t = min(1.0, max(0.0, need / segRemaining))
                 let rx = fromX + (curX-fromX)*t; let ry = fromY + (curY-fromY)*t
                 drawRingSet(rx, ry, stampIdx); stampIdx += 1
                 fromX = rx; fromY = ry; segRemaining -= need; distAcc = 0
@@ -673,23 +712,35 @@ public final class SparklerBrush: BrushEffect {
     public let defaultSize: CGFloat = 14
 
     public func drawLive(ctx: CGContext, points: [PointF], color: UIColor, strokeWidth: CGFloat, alpha: CGFloat, scaleX: CGFloat, scaleY: CGFloat, seed: Int64) {
-        drawSparkler(ctx: ctx, points: points, strokeWidth: strokeWidth, scaleX: scaleX, scaleY: scaleY, seed: seed)
+        drawSparkler(ctx: ctx, points: points, strokeWidth: strokeWidth, scaleX: scaleX, scaleY: scaleY, seed: seed, isLive: true)
     }
     public func drawCommitted(ctx: CGContext, points: [PointF], color: UIColor, strokeWidth: CGFloat, alpha: CGFloat, scaleX: CGFloat, scaleY: CGFloat, seed: Int64) {
-        drawSparkler(ctx: ctx, points: points, strokeWidth: strokeWidth, scaleX: scaleX, scaleY: scaleY, seed: seed)
+        drawSparkler(ctx: ctx, points: points, strokeWidth: strokeWidth, scaleX: scaleX, scaleY: scaleY, seed: seed, isLive: false)
     }
 
-    private func drawSparkler(ctx: CGContext, points: [PointF], strokeWidth: CGFloat, scaleX: CGFloat, scaleY: CGFloat, seed: Int64) {
-        ClassicNeonBrush().drawLive(ctx: ctx, points: points, color: UIColor(hex: 0xFFFF9100), strokeWidth: strokeWidth, alpha: 1, scaleX: scaleX, scaleY: scaleY, seed: seed)
-        ctx.setStrokeColor(UIColor(hex: 0xFFFFF176).cgColor); ctx.setLineWidth(1.8)
+    private func drawSparkler(ctx: CGContext, points: [PointF], strokeWidth: CGFloat, scaleX: CGFloat, scaleY: CGFloat, seed: Int64, isLive: Bool) {
+        guard !points.isEmpty else { return }
+        if isLive {
+            ClassicNeonBrush().drawLive(ctx: ctx, points: points, color: UIColor(hex: 0xFFFF9100), strokeWidth: strokeWidth, alpha: 1, scaleX: scaleX, scaleY: scaleY, seed: seed)
+        } else {
+            ClassicNeonBrush().drawCommitted(ctx: ctx, points: points, color: UIColor(hex: 0xFFFF9100), strokeWidth: strokeWidth, alpha: 1, scaleX: scaleX, scaleY: scaleY, seed: seed)
+        }
+        ctx.setStrokeColor(UIColor(hex: 0xFFFFF176).cgColor)
+        ctx.setLineWidth(1.8)
+        let len = strokeWidth * 1.5
+        let path = CGMutablePath()
+        let step = max(3, points.count / 40)
         var i = 0
         while i < points.count {
-            let p = points[i]; let x = CGFloat(p.x)*scaleX; let y = CGFloat(p.y)*scaleY
-            let len = strokeWidth * 1.5
-            ctx.move(to: CGPoint(x: x-len, y: y-len)); ctx.addLine(to: CGPoint(x: x+len, y: y+len)); ctx.strokePath()
-            ctx.move(to: CGPoint(x: x-len, y: y+len)); ctx.addLine(to: CGPoint(x: x+len, y: y-len)); ctx.strokePath()
-            i += 3
+            let p = points[i]; let x = CGFloat(p.x) * scaleX; let y = CGFloat(p.y) * scaleY
+            path.move(to: CGPoint(x: x - len, y: y - len))
+            path.addLine(to: CGPoint(x: x + len, y: y + len))
+            path.move(to: CGPoint(x: x - len, y: y + len))
+            path.addLine(to: CGPoint(x: x + len, y: y - len))
+            i += step
         }
+        ctx.addPath(path)
+        ctx.strokePath()
     }
 
     public func drawPreview(ctx: CGContext, width: CGFloat, height: CGFloat) {
@@ -722,18 +773,24 @@ public final class FireworksBrush: BrushEffect {
         draw(ctx: ctx, points: points, strokeWidth: strokeWidth, scaleX: scaleX, scaleY: scaleY)
     }
     private func draw(ctx: CGContext, points: [PointF], strokeWidth: CGFloat, scaleX: CGFloat, scaleY: CGFloat) {
-        ctx.setStrokeColor(UIColor(hex: 0xFFFFD700).cgColor); ctx.setLineWidth(2)
+        guard !points.isEmpty else { return }
+        ctx.setStrokeColor(UIColor(hex: 0xFFFFD700).cgColor)
+        ctx.setLineWidth(2)
+        let rayLen = strokeWidth * 1.8
+        let path = CGMutablePath()
+        let step = max(6, points.count / 50)
         var i = 0
         while i < points.count {
-            let p = points[i]; let x = CGFloat(p.x)*scaleX; let y = CGFloat(p.y)*scaleY
+            let p = points[i]; let x = CGFloat(p.x) * scaleX; let y = CGFloat(p.y) * scaleY
             for deg in stride(from: 0, to: 360, by: 45) {
                 let rad = CGFloat(deg) * .pi / 180
-                ctx.move(to: CGPoint(x: x, y: y))
-                ctx.addLine(to: CGPoint(x: x + strokeWidth*1.8*cos(rad), y: y + strokeWidth*1.8*sin(rad)))
-                ctx.strokePath()
+                path.move(to: CGPoint(x: x, y: y))
+                path.addLine(to: CGPoint(x: x + rayLen * cos(rad), y: y + rayLen * sin(rad)))
             }
-            i += 6
+            i += step
         }
+        ctx.addPath(path)
+        ctx.strokePath()
     }
     public func drawPreview(ctx: CGContext, width: CGFloat, height: CGFloat) {
         let cx = width*0.5; let cy = height*0.5
@@ -757,14 +814,16 @@ public final class NeonStarsBrush: BrushEffect {
     public let defaultSize: CGFloat = 16
 
     public func drawLive(ctx: CGContext, points: [PointF], color: UIColor, strokeWidth: CGFloat, alpha: CGFloat, scaleX: CGFloat, scaleY: CGFloat, seed: Int64) {
-        draw(ctx: ctx, points: points, strokeWidth: strokeWidth, scaleX: scaleX, scaleY: scaleY)
+        draw(ctx: ctx, points: points, strokeWidth: strokeWidth, scaleX: scaleX, scaleY: scaleY, isLive: true)
     }
     public func drawCommitted(ctx: CGContext, points: [PointF], color: UIColor, strokeWidth: CGFloat, alpha: CGFloat, scaleX: CGFloat, scaleY: CGFloat, seed: Int64) {
-        draw(ctx: ctx, points: points, strokeWidth: strokeWidth, scaleX: scaleX, scaleY: scaleY)
+        draw(ctx: ctx, points: points, strokeWidth: strokeWidth, scaleX: scaleX, scaleY: scaleY, isLive: false)
     }
-    private func draw(ctx: CGContext, points: [PointF], strokeWidth: CGFloat, scaleX: CGFloat, scaleY: CGFloat) {
+    private func draw(ctx: CGContext, points: [PointF], strokeWidth: CGFloat, scaleX: CGFloat, scaleY: CGFloat, isLive: Bool) {
         ctx.saveGState()
-        ctx.setShadow(offset: .zero, blur: 3, color: UIColor(hex: 0xFFFF4081).cgColor)
+        if !isLive {
+            ctx.setShadow(offset: .zero, blur: 3, color: UIColor(hex: 0xFFFF4081).cgColor)
+        }
         ctx.setStrokeColor(UIColor(hex: 0xFFFF4081).cgColor); ctx.setLineWidth(2.5)
         var i = 0
         while i < points.count {
@@ -825,14 +884,16 @@ public final class BokehDotsBrush: BrushEffect {
     public let defaultSize: CGFloat = 18
 
     public func drawLive(ctx: CGContext, points: [PointF], color: UIColor, strokeWidth: CGFloat, alpha: CGFloat, scaleX: CGFloat, scaleY: CGFloat, seed: Int64) {
-        draw(ctx: ctx, points: points, strokeWidth: strokeWidth, scaleX: scaleX, scaleY: scaleY)
+        draw(ctx: ctx, points: points, strokeWidth: strokeWidth, scaleX: scaleX, scaleY: scaleY, isLive: true)
     }
     public func drawCommitted(ctx: CGContext, points: [PointF], color: UIColor, strokeWidth: CGFloat, alpha: CGFloat, scaleX: CGFloat, scaleY: CGFloat, seed: Int64) {
-        draw(ctx: ctx, points: points, strokeWidth: strokeWidth, scaleX: scaleX, scaleY: scaleY)
+        draw(ctx: ctx, points: points, strokeWidth: strokeWidth, scaleX: scaleX, scaleY: scaleY, isLive: false)
     }
-    private func draw(ctx: CGContext, points: [PointF], strokeWidth: CGFloat, scaleX: CGFloat, scaleY: CGFloat) {
+    private func draw(ctx: CGContext, points: [PointF], strokeWidth: CGFloat, scaleX: CGFloat, scaleY: CGFloat, isLive: Bool) {
         ctx.saveGState()
-        ctx.setShadow(offset: .zero, blur: strokeWidth*0.5, color: UIColor(hex: 0x88BA68C8).cgColor)
+        if !isLive {
+            ctx.setShadow(offset: .zero, blur: strokeWidth*0.5, color: UIColor(hex: 0x88BA68C8).cgColor)
+        }
         ctx.setFillColor(UIColor(hex: 0x88BA68C8).cgColor)
         var i = 0
         while i < points.count {

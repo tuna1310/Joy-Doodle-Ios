@@ -64,6 +64,7 @@ public final class DrawViewModel: ObservableObject {
     public weak var canvasView: NeonCanvasView?
 
     private var cancellables: Set<AnyCancellable> = []
+    private var backgroundObserver: NSObjectProtocol?
 
     // MARK: - Init
     public init(artworkId: String? = nil, existing artwork: Artwork? = nil) {
@@ -77,11 +78,64 @@ public final class DrawViewModel: ObservableObject {
 
         setupPlayer()
         subscribeHistory()
+        setupBackgroundAutoSave()
 
         if let tId = templateId {
             if let template = TemplateRepository.shared.getTemplateById(tId) {
                 loadTemplate(template)
             }
+        }
+
+        loadSavedActions()
+    }
+
+    private func loadSavedActions() {
+        if let log = ArtworkRepository.shared.loadActionLog(artworkId: artworkId) {
+            self.committedActions = log.actions
+            self.historyManager.load(actions: log.actions)
+            self.isSaved = true
+        }
+    }
+
+    // Track whether saved actions have been loaded and rendered onto canvas
+    private var hasRestoredCanvas: Bool = false
+
+    public func restoreCanvasIfNeeded() {
+        guard !hasRestoredCanvas, let canvas = canvasView, canvas.bounds.width > 0, canvas.bounds.height > 0 else { return }
+        hasRestoredCanvas = true
+
+        // 1. Line art
+        if let template = templateUIImage {
+            canvas.templateUIImage = template
+        }
+
+        // 2. Fill layer
+        if !committedActions.isEmpty {
+            updateFillLayerFromActions(committedActions)
+        }
+
+        // 3. Strokes
+        let strokeActions = committedActions.filter {
+            switch $0 { case .stroke, .erase: return true; case .fill: return false }
+        }
+        canvas.redrawFromActions(strokeActions)
+    }
+
+    deinit {
+        if let obs = backgroundObserver {
+            NotificationCenter.default.removeObserver(obs)
+        }
+    }
+
+    private func setupBackgroundAutoSave() {
+        backgroundObserver = NotificationCenter.default.addObserver(
+            forName: UIApplication.didEnterBackgroundNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self = self, !self.committedActions.isEmpty else { return }
+            let log = self.exportActionLog()
+            ArtworkRepository.shared.saveDraft(artworkId: self.artworkId, actionLog: log)
         }
     }
 
@@ -168,6 +222,9 @@ public final class DrawViewModel: ObservableObject {
                 self.isColorFillMode = true
                 self.canvasView?.isColorFillMode = true
                 self.isLoading = false
+                if !self.committedActions.isEmpty {
+                    self.updateFillLayerFromActions(self.committedActions)
+                }
             }
         }
     }
@@ -289,12 +346,13 @@ public final class DrawViewModel: ObservableObject {
     // MARK: - Clear (keep template frame)
 
     public func clearStrokes() {
+        if isReplaying { exitReplay() }
         HapticManager.shared.impact()
         let fillActions = committedActions.filter { if case .fill = $0 { return true }; return false }
         committedActions = fillActions
         historyManager.reset()
         for fa in fillActions { historyManager.recordAction(fa) }
-        canvasView?.redrawFromActions(committedActions)
+        canvasView?.redrawFromActions([])
         isSaved = false
     }
 
@@ -331,16 +389,21 @@ public final class DrawViewModel: ObservableObject {
 
     public func exportActionLog() -> ActionLog {
         let actions = historyManager.getActionLog()
-        let duration: Int64 = actions.count > 1
-            ? (actions.last!.timestampMs - actions.first!.timestampMs)
-            : 0
+        let duration: Int64
+        if let first = actions.first?.timestampMs, let last = actions.last?.timestampMs, actions.count > 1 {
+            duration = max(0, last - first)
+        } else {
+            duration = 0
+        }
+        let w = Int(canvasView?.bounds.width ?? 1024)
+        let h = Int(canvasView?.bounds.height ?? 1024)
         return ActionLog(
             version: 1,
             artworkId: artworkId,
             templateId: templateId,
             isBlankCanvas: isBlankCanvas,
-            canvasWidth: Int(canvasView?.bounds.width ?? 1024),
-            canvasHeight: Int(canvasView?.bounds.height ?? 1024),
+            canvasWidth: max(1, w),
+            canvasHeight: max(1, h),
             backgroundColor: UIColor.black.argbInt,
             actions: actions,
             totalDurationMs: duration
@@ -359,18 +422,26 @@ public final class DrawViewModel: ObservableObject {
         isLoading = true
         Task.detached(priority: .userInitiated) { [weak self] in
             guard let self = self else { return }
-            let image = await MainActor.run { canvas.snapshot() }
-            let log = await MainActor.run { self.exportActionLog() }
-            let artwork = Artwork(
-                id: await MainActor.run { self.artworkId },
-                title: await MainActor.run { self.artworkTitle },
-                templateId: await MainActor.run { self.templateId },
-                isBlankCanvas: await MainActor.run { self.isBlankCanvas }
-            )
+            let (image, log, artwork) = await MainActor.run {
+                let img = canvas.snapshot()
+                let l = self.exportActionLog()
+                let art = Artwork(
+                    id: self.artworkId,
+                    title: self.artworkTitle,
+                    templateId: self.templateId,
+                    isBlankCanvas: self.isBlankCanvas
+                )
+                return (img, l, art)
+            }
             let success = ArtworkRepository.shared.save(artwork: artwork, actionLog: log, thumbnail: image)
             await MainActor.run {
                 self.isLoading = false
                 self.isSaved = success
+                if success {
+                    self.toastMessage = "Đã lưu tranh thành công!"
+                } else {
+                    self.toastMessage = "Không thể lưu tranh"
+                }
                 onDone(success)
             }
         }

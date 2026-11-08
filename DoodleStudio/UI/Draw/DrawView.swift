@@ -1,91 +1,126 @@
 import SwiftUI
 import UIKit
+import os
 
 // MARK: - DrawView
 // Drawing & Coloring screen:
 // - Top: denim banner (real AdMob adaptive banner, #1E5068 texture)
-// - Top-left: Back button (coral circle)
-// - Top-right: Template button (🎨) + Trash button (coral circle)
+// - Top-left: Back button (coral circle, zIndex 50)
+// - Top-right: Template button (🎨) + Trash button (coral circle, zIndex 50)
 // - Center: Black canvas (UIViewRepresentable with Core Graphics)
 // - Bottom: Color palette + Mode toggle (Fill / Draw) + 5 circular tool buttons:
 //   Brush, Eraser, Undo (long press = Redo), Play (Replay speed x1/x2/x4), Share.
+
+private let logger = Logger(subsystem: "com.doodlestudio.app", category: "DrawView")
 
 public struct DrawView: View {
     @StateObject var viewModel: DrawViewModel
     @Environment(\.dismiss) var dismiss
 
     public var body: some View {
-        ZStack {
+        ZStack(alignment: .top) {
             Color.black.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 // ── Top Ad Banner (Denim textured, fixed height) ──
                 BannerAdView(adUnitID: AdConfig.bannerDrawScreen, height: 85)
 
-                // ── Canvas Area with Top Buttons ──
-                ZStack(alignment: .top) {
-                    NeonCanvasRepresentable(viewModel: viewModel)
-                        .ignoresSafeArea(edges: .bottom)
-
-                    // Top navigation & actions overlay
-                    HStack {
-                        // Back Button
-                        Button(action: { handleBack() }) {
-                            Image(systemName: "chevron.left")
-                                .font(.system(size: 20, weight: .bold))
-                                .foregroundColor(.white)
-                                .frame(width: 46, height: 46)
-                                .background(AppColors.coralButton)
-                                .clipShape(Circle())
-                                .shadow(color: AppColors.coralButton.opacity(0.6), radius: 6)
-                        }
-
-                        Spacer()
-
-                        // Template Picker Button (🎨)
-                        Button(action: {
-                            HapticManager.shared.impact()
-                            viewModel.showTemplatePicker = true
-                        }) {
-                            Text("🎨")
-                                .font(.system(size: 20))
-                                .frame(width: 46, height: 46)
-                                .background(Color(UIColor(hex: 0xFF1E293B)))
-                                .clipShape(Circle())
-                                .overlay(
-                                    Circle().stroke(AppColors.neonCyan.opacity(0.8), lineWidth: 1.5)
-                                )
-                                .shadow(color: AppColors.neonCyan.opacity(0.4), radius: 6)
-                        }
-
-                        // Trash Button
-                        Button(action: {
-                            HapticManager.shared.impact()
-                            viewModel.showClearAlert = true
-                        }) {
-                            Image(systemName: "trash")
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(.white)
-                                .frame(width: 46, height: 46)
-                                .background(AppColors.coralButton)
-                                .clipShape(Circle())
-                                .shadow(color: AppColors.coralButton.opacity(0.6), radius: 6)
-                        }
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 10)
-                }
+                // ── Canvas Area ──
+                NeonCanvasRepresentable(viewModel: viewModel)
+                    .ignoresSafeArea(edges: .bottom)
 
                 // ── Bottom Drawing Toolbar ──
                 DrawingToolbarView(viewModel: viewModel)
                     .padding(.bottom, 8)
             }
 
-            // Brush picker horizontal sheet
+            // ── Top Navigation Buttons: ALWAYS on top of canvas (zIndex 50) ──
+            VStack {
+                // Space for ad banner (pass touches through to banner)
+                Color.clear.frame(height: 85)
+                    .allowsHitTesting(false)
+
+                HStack(alignment: .top) {
+                    // Back Button (left)
+                    Button {
+                        logger.info("Back button tapped")
+                        HapticManager.shared.impact()
+                        handleBack()
+                    } label: {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(width: 54, height: 54)
+                            .background(AppColors.coralButton)
+                            .clipShape(Circle())
+                            .shadow(color: AppColors.coralButton.opacity(0.6), radius: 6)
+                            .contentShape(Circle())
+                    }
+                    .buttonStyle(PressAnimButtonStyle())
+                    .allowsHitTesting(true)
+
+                    Spacer().allowsHitTesting(false)
+
+                    // Template Picker Button (🎨)
+                    Button {
+                        HapticManager.shared.impact()
+                        viewModel.showTemplatePicker = true
+                    } label: {
+                        Text("🎨")
+                            .font(.system(size: 20))
+                            .frame(width: 54, height: 54)
+                            .background(Color(UIColor(hex: 0xFF1E293B)))
+                            .clipShape(Circle())
+                            .overlay(Circle().stroke(AppColors.neonCyan.opacity(0.8), lineWidth: 1.5))
+                            .shadow(color: AppColors.neonCyan.opacity(0.4), radius: 6)
+                            .contentShape(Circle())
+                    }
+                    .buttonStyle(PressAnimButtonStyle())
+                    .allowsHitTesting(true)
+
+                    // Trash Button (right)
+                    Button {
+                        logger.info("Trash button tapped, hasContent=\(viewModel.hasContent)")
+                        HapticManager.shared.impact()
+                        if viewModel.isReplaying {
+                            viewModel.exitReplay()
+                        }
+                        if viewModel.hasContent {
+                            viewModel.showClearAlert = true
+                        }
+                    } label: {
+                        Image(systemName: "trash")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(width: 54, height: 54)
+                            .background(AppColors.coralButton.opacity(viewModel.hasContent ? 1.0 : 0.5))
+                            .clipShape(Circle())
+                            .shadow(color: AppColors.coralButton.opacity(0.6), radius: 6)
+                            .contentShape(Circle())
+                    }
+                    .buttonStyle(PressAnimButtonStyle())
+                    .allowsHitTesting(true)
+                }
+                .padding(.horizontal, 12)
+                .padding(.top, 8)
+
+                Spacer().allowsHitTesting(false)
+            }
+            .allowsHitTesting(true)
+            .zIndex(50)
+
+            // Brush picker horizontal sheet with dim backdrop
             if viewModel.showBrushPicker {
-                BrushPickerSheet(viewModel: viewModel)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .zIndex(10)
+                ZStack(alignment: .bottom) {
+                    Color.black.opacity(0.3)
+                        .ignoresSafeArea()
+                        .onTapGesture {
+                            withAnimation { viewModel.showBrushPicker = false }
+                        }
+                    BrushPickerSheet(viewModel: viewModel)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+                .zIndex(10)
             }
 
             // Share submenu overlay
@@ -122,21 +157,39 @@ public struct DrawView: View {
                         viewModel.toastMessage = nil
                     }
                 }
+                .allowsHitTesting(false)
                 .zIndex(30)
             }
         }
         .navigationBarHidden(true)
-        .alert("Xóa nét vẽ", isPresented: $viewModel.showClearAlert) {
-            Button("Xóa nét", role: .destructive) { viewModel.clearStrokes() }
+        // Trash confirm alert
+        .confirmationDialog(
+            "Xóa toàn bộ bức vẽ?",
+            isPresented: $viewModel.showClearAlert,
+            titleVisibility: .visible
+        ) {
+            Button("Xóa", role: .destructive) {
+                logger.info("Clear confirmed")
+                viewModel.clearStrokes()
+            }
             Button("Hủy", role: .cancel) {}
         } message: {
-            Text("Xóa toàn bộ nét vẽ và màu tô? Khung hình mẫu sẽ được giữ nguyên.")
+            Text("Nét vẽ và màu tô sẽ bị xóa. Khung hình mẫu sẽ được giữ nguyên.")
         }
-        .alert("Bạn muốn làm gì với bức tranh?", isPresented: $viewModel.showExitDialog) {
+        // Exit confirm dialog
+        .confirmationDialog(
+            "Bạn muốn làm gì với bức tranh?",
+            isPresented: $viewModel.showExitDialog,
+            titleVisibility: .visible
+        ) {
             Button("Lưu lại") {
+                logger.info("Save & exit")
                 viewModel.saveArtwork { _ in dismiss() }
             }
-            Button("Xóa đi", role: .destructive) { dismiss() }
+            Button("Xóa đi", role: .destructive) {
+                logger.info("Discard & exit")
+                dismiss()
+            }
             Button("Vẽ tiếp", role: .cancel) {}
         } message: {
             Text("Bức tranh của bạn có nét vẽ chưa lưu.")
@@ -151,6 +204,26 @@ public struct DrawView: View {
     }
 
     private func handleBack() {
+        // If brush picker is open, close it first
+        if viewModel.showBrushPicker {
+            withAnimation { viewModel.showBrushPicker = false }
+            return
+        }
+        // If template picker is open, close it first
+        if viewModel.showTemplatePicker {
+            viewModel.showTemplatePicker = false
+            return
+        }
+        // If share submenu is open, close it first
+        if viewModel.showShareSubmenu {
+            viewModel.showShareSubmenu = false
+            return
+        }
+        // If replaying, stop first
+        if viewModel.isReplaying {
+            viewModel.exitReplay()
+        }
+
         if viewModel.hasContent && !viewModel.isSaved {
             viewModel.showExitDialog = true
         } else {
@@ -462,15 +535,12 @@ struct BrushCard: View {
     }
 
     private func generatePreview() {
-        let size = CGSize(width: 64, height: 64)
-        let renderer = UIGraphicsImageRenderer(size: size)
-        let img = renderer.image { format in
-            let ctx = format.cgContext
-            ctx.setFillColor(UIColor.black.cgColor)
-            ctx.fill(CGRect(origin: .zero, size: size))
-            brush.drawPreview(ctx: ctx, width: size.width, height: size.height)
+        DispatchQueue.global(qos: .userInitiated).async {
+            let img = BrushPreviewCache.shared.getPreview(for: brush)
+            DispatchQueue.main.async {
+                self.preview = img
+            }
         }
-        self.preview = img
     }
 }
 

@@ -76,4 +76,44 @@ final class HistoryManagerTests: XCTestCase {
         XCTAssertFalse(history.canRedo)
         XCTAssertEqual(history.size, 0)
     }
+
+    func testUndoWithEmptyStack() {
+        let history = HistoryManager()
+        XCTAssertFalse(history.canUndo)
+        let undone = history.undo()
+        XCTAssertNil(undone)
+        XCTAssertFalse(history.canUndo)
+        XCTAssertFalse(history.canRedo)
+        XCTAssertEqual(history.size, 0)
+    }
+
+    func testRedoWithEmptyStack() {
+        let history = HistoryManager()
+        XCTAssertFalse(history.canRedo)
+        let redone = history.redo()
+        XCTAssertNil(redone)
+        XCTAssertFalse(history.canRedo)
+        XCTAssertEqual(history.size, 0)
+    }
+
+    func testClearAllThenUndo() {
+        let history = HistoryManager()
+        let act1 = EditAction.stroke(StrokeEditAction(points: [PointF(1, 1)], color: -1, strokeWidth: 5))
+        let act2 = EditAction.stroke(StrokeEditAction(points: [PointF(2, 2)], color: -2, strokeWidth: 8))
+        history.recordAction(act1)
+        history.recordAction(act2)
+        XCTAssertEqual(history.size, 2)
+        XCTAssertTrue(history.canUndo)
+
+        // Clear all
+        history.reset()
+        XCTAssertEqual(history.size, 0)
+        XCTAssertFalse(history.canUndo)
+
+        // Undo after clear must not crash and must return nil
+        let undone = history.undo()
+        XCTAssertNil(undone)
+        XCTAssertFalse(history.canUndo)
+        XCTAssertFalse(history.canRedo)
+    }
 }

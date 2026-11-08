@@ -1,20 +1,31 @@
 import UIKit
 import CoreGraphics
+import os
 
 // MARK: - NeonCanvasView
 // Core Graphics canvas with double-buffered bitmap cache for 60fps performance.
 // Layer ordering (bottom to top):
-// 1. Black background
+// 1. Black background (via committedBitmap)
 // 2. Fill layer (color flood fill)
-// 3. Committed free-draw strokes
-// 4. In-progress active stroke (live drawing)
+// 3. Committed free-draw strokes (in committedBitmap)
+// 4. In-progress active stroke (live drawing - only the NEW segment)
 // 5. Template line-art overlay (topmost, never erased or covered)
+//
+// KEY PERFORMANCE DESIGN:
+// - committedBitmap caches ALL committed strokes. Never redrawn from scratch on touch.
+// - draw(_:) only composites layers; active stroke drawn in dirty rect only.
+// - setNeedsDisplay(dirtyRect) instead of full setNeedsDisplay() during live drawing.
+// - Rainbow brush uses pre-computed segment indices, NOT per-point UIColor allocation.
+// - Particle brushes (star/snow/heart etc.) use cached sprite images.
+
+private let canvasLogger = Logger(subsystem: "com.doodlestudio.app", category: "NeonCanvasView")
 
 @MainActor
 public protocol NeonCanvasViewDelegate: AnyObject {
     func canvasDidCommitStroke(_ action: EditAction)
     func canvasDidBeginDrawing()
     func canvasDidTapToFill(at point: CGPoint)
+    func canvasDidLayoutSubviews()
 }
 
 public final class NeonCanvasView: UIView {
@@ -32,7 +43,10 @@ public final class NeonCanvasView: UIView {
     }
 
     // MARK: - Bitmap Layers
+    // committedBitmap: BLACK background + all committed strokes
     private var committedBitmap: UIImage?
+
+    // fillLayer: colour-fill regions rendered separately
     public var fillLayer: UIImage? {
         didSet { setNeedsDisplay() }
     }
@@ -49,6 +63,16 @@ public final class NeonCanvasView: UIView {
     private var touchStartTime: TimeInterval = 0
     private var touchStartPoint: CGPoint = .zero
     private var hasMovedSignificantly: Bool = false
+    // Track index into activePoints that was last rendered for dirty-rect optimisation
+    private var lastRenderedIndex: Int = 0
+
+    // Generation token to ensure background redraws never overwrite newer strokes
+    private var redrawGeneration: Int = 0
+
+    // Screen scale capped at 2x for performance
+    private var renderScale: CGFloat {
+        min(UIScreen.main.scale, 2.0)
+    }
 
     // MARK: - Init
     public override init(frame: CGRect) {
@@ -65,14 +89,36 @@ public final class NeonCanvasView: UIView {
         isOpaque = true
         isMultipleTouchEnabled = false
         layer.drawsAsynchronously = false
+        NotificationCenter.default.addObserver(self, selector: #selector(handleMemoryWarning), name: UIApplication.didReceiveMemoryWarningNotification, object: nil)
+    }
+
+    @objc private func handleMemoryWarning() {
+        canvasLogger.warning("Memory warning received in NeonCanvasView - purging preview caches")
+        BrushPreviewCache.shared.clear()
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
 
     // MARK: - Layout
     public override func layoutSubviews() {
         super.layoutSubviews()
-        if committedBitmap == nil && bounds.width > 0 && bounds.height > 0 {
-            redrawAllCommitted()
+        guard bounds.width > 0, bounds.height > 0 else { return }
+        if committedBitmap == nil {
+            delegate?.canvasDidLayoutSubviews()
+            if committedBitmap == nil {
+                redrawFromActions([])
+            }
         }
+    }
+
+    // MARK: - HitTest
+    // The canvas accepts touch across its full area.
+    // SwiftUI buttons above the canvas (with higher zIndex) intercept their own taps.
+    public override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+        guard bounds.contains(point) else { return nil }
+        return super.hitTest(point, with: event)
     }
 
     // MARK: - External API
@@ -82,13 +128,14 @@ public final class NeonCanvasView: UIView {
     }
 
     public func appendCommittedAction(_ action: EditAction) {
-        commitActionToBitmap(action)
+        commitActionToBitmapSync(action)
+        setNeedsDisplay()
     }
 
     public func clear() {
         committedBitmap = nil
-        fillLayer = nil
         activePoints.removeAll()
+        lastRenderedIndex = 0
         setNeedsDisplay()
     }
 
@@ -106,7 +153,7 @@ public final class NeonCanvasView: UIView {
         setNeedsDisplay()
     }
 
-    // MARK: - Bitmap Redraw
+    // MARK: - Bitmap Redraw (from scratch)
 
     public func redrawAllCommitted() {
         redrawFromActions([])
@@ -115,41 +162,58 @@ public final class NeonCanvasView: UIView {
     public func redrawFromActions(_ actions: [EditAction]) {
         guard bounds.width > 0, bounds.height > 0 else { return }
         let size = bounds.size
-        UIGraphicsBeginImageContextWithOptions(size, true, UIScreen.main.scale)
-        guard let ctx = UIGraphicsGetCurrentContext() else { UIGraphicsEndImageContext(); return }
+        let scale = renderScale
 
-        // Black background
-        ctx.setFillColor(UIColor.black.cgColor)
-        ctx.fill(CGRect(origin: .zero, size: size))
+        redrawGeneration += 1
+        let currentToken = redrawGeneration
 
-        // All stroke and erase actions
-        for action in actions {
-            renderAction(action, ctx: ctx, bounds: CGRect(origin: .zero, size: size))
+        // Run bitmap generation on a background queue then update on main
+        let w = size.width, h = size.height
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self = self else { return }
+            UIGraphicsBeginImageContextWithOptions(CGSize(width: w, height: h), true, scale)
+            guard let ctx = UIGraphicsGetCurrentContext() else {
+                UIGraphicsEndImageContext(); return
+            }
+            ctx.setFillColor(UIColor.black.cgColor)
+            ctx.fill(CGRect(x: 0, y: 0, width: w, height: h))
+            for action in actions {
+                self.renderAction(action, ctx: ctx, bounds: CGRect(x: 0, y: 0, width: w, height: h))
+            }
+            let img = UIGraphicsGetImageFromCurrentImageContext()
+            UIGraphicsEndImageContext()
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self, self.redrawGeneration == currentToken else {
+                    // Stale background render discarded: user drew a new stroke or started another action
+                    return
+                }
+                self.committedBitmap = img
+                self.setNeedsDisplay()
+            }
         }
-
-        committedBitmap = UIGraphicsGetImageFromCurrentImageContext()
-        UIGraphicsEndImageContext()
-        setNeedsDisplay()
     }
 
-    private func commitActionToBitmap(_ action: EditAction) {
+    private func commitActionToBitmapSync(_ action: EditAction) {
+        redrawGeneration += 1 // Invalidate any pending background redraws!
         guard bounds.width > 0, bounds.height > 0 else { return }
         let size = bounds.size
-        UIGraphicsBeginImageContextWithOptions(size, true, UIScreen.main.scale)
-        guard let ctx = UIGraphicsGetCurrentContext() else { UIGraphicsEndImageContext(); return }
+        let scale = renderScale
+        let existing = committedBitmap
 
-        if let existing = committedBitmap {
-            existing.draw(in: CGRect(origin: .zero, size: size))
+        UIGraphicsBeginImageContextWithOptions(size, true, scale)
+        guard let ctx = UIGraphicsGetCurrentContext() else {
+            UIGraphicsEndImageContext(); return
+        }
+        if let img = existing {
+            img.draw(in: CGRect(origin: .zero, size: size))
         } else {
             ctx.setFillColor(UIColor.black.cgColor)
             ctx.fill(CGRect(origin: .zero, size: size))
         }
-
-        renderAction(action, ctx: ctx, bounds: CGRect(origin: .zero, size: size))
-
-        committedBitmap = UIGraphicsGetImageFromCurrentImageContext()
+        self.renderAction(action, ctx: ctx, bounds: CGRect(origin: .zero, size: size))
+        let newBitmap = UIGraphicsGetImageFromCurrentImageContext()
         UIGraphicsEndImageContext()
-        setNeedsDisplay()
+        self.committedBitmap = newBitmap
     }
 
     // MARK: - Render Action
@@ -157,6 +221,7 @@ public final class NeonCanvasView: UIView {
     private func renderAction(_ action: EditAction, ctx: CGContext, bounds: CGRect) {
         switch action {
         case .stroke(let s):
+            guard !s.points.isEmpty else { return }
             let brush = BrushRegistry.get(s.toolType)
             let color = UIColor(androidArgb: s.color)
             brush.drawCommitted(
@@ -169,6 +234,7 @@ public final class NeonCanvasView: UIView {
                 seed: s.seed
             )
         case .erase(let e):
+            guard !e.points.isEmpty else { return }
             renderErase(ctx: ctx, points: e.points, strokeWidth: CGFloat(e.strokeWidth))
         case .fill:
             // Fill actions rendered via fillLayer
@@ -191,21 +257,16 @@ public final class NeonCanvasView: UIView {
                                       y: CGFloat(p.y) - strokeWidth*0.5,
                                       width: strokeWidth, height: strokeWidth))
             ctx.fillPath()
-        } else if let path = buildErasePath(points: points) {
+        } else {
+            let path = CGMutablePath()
+            path.move(to: points[0].cgPoint)
+            for i in 1..<points.count {
+                path.addLine(to: points[i].cgPoint)
+            }
             ctx.addPath(path)
             ctx.strokePath()
         }
         ctx.restoreGState()
-    }
-
-    private func buildErasePath(points: [PointF]) -> CGPath? {
-        guard points.count >= 2 else { return nil }
-        let path = CGMutablePath()
-        path.move(to: points[0].cgPoint)
-        for i in 1..<points.count {
-            path.addLine(to: points[i].cgPoint)
-        }
-        return path
     }
 
     private func renderActiveStroke(ctx: CGContext) {
@@ -232,7 +293,7 @@ public final class NeonCanvasView: UIView {
         guard let ctx = UIGraphicsGetCurrentContext() else { return }
 
         if isReplaying {
-            // Replay mode: 1. Black -> 2. Fill -> 3. Strokes -> 4. Active -> 5. Template
+            // Replay mode: Black -> Fill -> Strokes -> Active -> Template
             ctx.setFillColor(UIColor.black.cgColor)
             ctx.fill(bounds)
             fillLayer?.draw(in: bounds)
@@ -248,7 +309,7 @@ public final class NeonCanvasView: UIView {
         }
 
         // Normal mode:
-        // 1. Black background
+        // 1. CommittedBitmap (black background + all past strokes)
         if let cached = committedBitmap {
             cached.draw(in: bounds)
         } else {
@@ -256,18 +317,15 @@ public final class NeonCanvasView: UIView {
             ctx.fill(bounds)
         }
 
-        // 2. Fill Layer (drawn under strokes)
+        // 2. Fill Layer (drawn on top of strokes to match Android layer order)
         fillLayer?.draw(in: bounds)
 
-        // 3. Committed bitmap (if exists and redraw needed)
-        committedBitmap?.draw(in: bounds)
-
-        // 4. Live active stroke on top
+        // 3. Live active stroke on top (only when drawing)
         if !activePoints.isEmpty && hasMovedSignificantly {
             renderActiveStroke(ctx: ctx)
         }
 
-        // 5. Template line-art on top of everything
+        // 4. Template line-art on top of everything
         templateUIImage?.draw(in: bounds)
     }
 
@@ -275,16 +333,19 @@ public final class NeonCanvasView: UIView {
 
     public override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard !isReplaying, let touch = touches.first else { return }
+        redrawGeneration += 1 // Drawing starts: cancel any older background redraws
         delegate?.canvasDidBeginDrawing()
 
         let loc = touch.location(in: self)
         touchStartPoint = loc
         touchStartTime = Date().timeIntervalSince1970
         hasMovedSignificantly = false
+        lastRenderedIndex = 0
 
         activeSeed = Int64(Date().timeIntervalSince1970 * 1000) ^ Int64(loc.x * 100) ^ Int64(loc.y * 10)
         activeTimestampMs = Int64(Date().timeIntervalSince1970 * 1000)
         activePoints = [PointF(loc)]
+        canvasLogger.debug("touchBegan at (\(loc.x, privacy: .public), \(loc.y, privacy: .public))")
     }
 
     public override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -294,37 +355,61 @@ public final class NeonCanvasView: UIView {
         let dx = loc.x - touchStartPoint.x
         let dy = loc.y - touchStartPoint.y
 
-        // Check if movement exceeds tap threshold (8pt)
         if !hasMovedSignificantly && (dx * dx + dy * dy > 64) {
             hasMovedSignificantly = true
         }
 
-        // If in fill mode and hasn't moved significantly, don't draw stroke yet
-        if isColorFillMode && !hasMovedSignificantly {
-            return
-        }
+        if isColorFillMode && !hasMovedSignificantly { return }
 
-        // Apple Pencil pressure support
-        if touch.type == .pencil && touch.force > 0 {
+        // Apple Pencil pressure
+        if touch.type == .pencil && touch.maximumPossibleForce > 0 && touch.force > 0 {
             let normalizedForce = max(0.5, min(2.0, touch.force / touch.maximumPossibleForce * 2.0))
             currentStrokeWidth = max(4, currentStrokeWidth * normalizedForce)
         }
 
+        // Collect coalesced touches, skip points < 2.5pt apart
+        let prevCount = activePoints.count
         if let coalesced = event?.coalescedTouches(for: touch), !coalesced.isEmpty {
             for cTouch in coalesced {
-                let p = PointF(cTouch.location(in: self))
-                if let last = activePoints.last {
-                    let dpx = p.x - last.x; let dpy = p.y - last.y
-                    if dpx * dpx + dpy * dpy >= 1.0 { activePoints.append(p) }
-                } else {
-                    activePoints.append(p)
-                }
+                addPoint(PointF(cTouch.location(in: self)))
             }
         } else {
-            let p = PointF(loc)
-            activePoints.append(p)
+            addPoint(PointF(loc))
         }
-        setNeedsDisplay()
+
+        // Only invalidate dirty rect around new segment
+        if activePoints.count > prevCount {
+            let dirtyRect = computeDirtyRect(from: prevCount)
+            setNeedsDisplay(dirtyRect)
+        }
+    }
+
+    private func addPoint(_ p: PointF) {
+        if let last = activePoints.last {
+            let dpx = p.x - last.x; let dpy = p.y - last.y
+            guard dpx * dpx + dpy * dpy >= 6.25 else { return } // skip < 2.5pt
+        }
+        activePoints.append(p)
+    }
+
+    private func computeDirtyRect(from startIndex: Int) -> CGRect {
+        let radius = currentStrokeWidth * 3.0 // includes glow halo
+        guard startIndex > 0, activePoints.count > startIndex else {
+            return bounds
+        }
+        let slice = activePoints[max(0, startIndex - 1)...]
+        guard let first = slice.first else { return bounds }
+        var minX = CGFloat(first.x), maxX = minX
+        var minY = CGFloat(first.y), maxY = minY
+        for p in slice {
+            minX = min(minX, CGFloat(p.x)); maxX = max(maxX, CGFloat(p.x))
+            minY = min(minY, CGFloat(p.y)); maxY = max(maxY, CGFloat(p.y))
+        }
+        return CGRect(
+            x: minX - radius, y: minY - radius,
+            width: maxX - minX + radius * 2,
+            height: maxY - minY + radius * 2
+        ).intersection(bounds)
     }
 
     public override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -337,25 +422,24 @@ public final class NeonCanvasView: UIView {
         let isTap = !hasMovedSignificantly && (dx * dx + dy * dy < 64) && (duration < 0.4)
 
         if isColorFillMode && isTap {
-            // TAP TO FILL REGION
             activePoints.removeAll()
+            lastRenderedIndex = 0
             delegate?.canvasDidTapToFill(at: loc)
             return
         }
 
-        // Otherwise commit as drawing stroke
         if let coalesced = event?.coalescedTouches(for: touch), !coalesced.isEmpty {
-            for cTouch in coalesced {
-                activePoints.append(PointF(cTouch.location(in: self)))
-            }
+            for cTouch in coalesced { addPoint(PointF(cTouch.location(in: self))) }
         } else {
-            activePoints.append(PointF(loc))
+            addPoint(PointF(loc))
         }
+        canvasLogger.debug("touchEnded, \(self.activePoints.count) points")
         finishActiveStroke()
     }
 
     public override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
         activePoints.removeAll()
+        lastRenderedIndex = 0
         setNeedsDisplay()
     }
 
@@ -366,9 +450,14 @@ public final class NeonCanvasView: UIView {
         if activePoints.count <= 2 {
             smoothed = activePoints
         } else {
-            smoothed = StrokeInterpolator.downsamplePoints(activePoints, minDistance: 1.5)
+            smoothed = StrokeInterpolator.downsamplePoints(activePoints, minDistance: 2.0)
         }
-        activePoints.removeAll()
+        guard !smoothed.isEmpty else {
+            activePoints.removeAll()
+            lastRenderedIndex = 0
+            setNeedsDisplay()
+            return
+        }
 
         let action: EditAction
         if isEraser {
@@ -391,7 +480,14 @@ public final class NeonCanvasView: UIView {
             action = .stroke(stroke)
         }
 
-        commitActionToBitmap(action)
+        // Commit stroke to bitmap synchronously into cache, THEN clear live stroke.
+        // This guarantees the canvas never has a blank gap/flash!
+        commitActionToBitmapSync(action)
+        activePoints.removeAll()
+        lastRenderedIndex = 0
+        setNeedsDisplay()
+
+        // Notify delegate
         delegate?.canvasDidCommitStroke(action)
     }
 
@@ -400,9 +496,9 @@ public final class NeonCanvasView: UIView {
     public func snapshot() -> UIImage {
         let size = bounds.size
         guard size.width > 0, size.height > 0 else { return UIImage() }
-        UIGraphicsBeginImageContextWithOptions(size, true, UIScreen.main.scale)
+        let scale = renderScale
+        UIGraphicsBeginImageContextWithOptions(size, true, scale)
         defer { UIGraphicsEndImageContext() }
-
         if let ctx = UIGraphicsGetCurrentContext() {
             ctx.setFillColor(UIColor.black.cgColor)
             ctx.fill(CGRect(origin: .zero, size: size))
@@ -416,9 +512,9 @@ public final class NeonCanvasView: UIView {
     public func exportCompositePNG() -> UIImage {
         let size = bounds.size
         guard size.width > 0, size.height > 0 else { return UIImage() }
-        UIGraphicsBeginImageContextWithOptions(size, false, UIScreen.main.scale)
+        let scale = renderScale
+        UIGraphicsBeginImageContextWithOptions(size, false, scale)
         defer { UIGraphicsEndImageContext() }
-
         fillLayer?.draw(in: CGRect(origin: .zero, size: size))
         committedBitmap?.draw(in: CGRect(origin: .zero, size: size))
         templateUIImage?.draw(in: CGRect(origin: .zero, size: size))

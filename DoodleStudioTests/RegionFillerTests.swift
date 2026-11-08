@@ -62,13 +62,93 @@ final class RegionFillerTests: XCTestCase {
         XCTAssertGreaterThan(nearestRegion, 0)
 
         // Test Undo & Redo on fill
-        if case .fill(let fillAction) = action! {
+        if let action = action, case .fill(let fillAction) = action {
             filler.revertFill(fillAction)
             XCTAssertEqual(filler.fillPixels[32 * w + 32], 0)
 
             filler.applyFill(fillAction)
             XCTAssertEqual(filler.fillPixels[32 * w + 32], expectedRed)
         }
+    }
+
+    func testRegionFillerZeroSizeCanvas() {
+        // Build with 0x0 canvas
+        let labelMapResult = LabelMapBuilder.buildFromPixelsSync(
+            pixels: [],
+            width: 0,
+            height: 0,
+            hasAlpha: false,
+            dilationPixels: 0
+        )
+        XCTAssertEqual(labelMapResult.width, 0)
+        XCTAssertEqual(labelMapResult.height, 0)
+        XCTAssertEqual(labelMapResult.regionCount, 0)
+
+        let filler = RegionFiller(labelMapResult: labelMapResult)
+        XCTAssertEqual(filler.width, 0)
+        XCTAssertEqual(filler.height, 0)
+        XCTAssertEqual(filler.regionCount, 0)
+
+        // Filling on zero-size canvas must return nil and not crash
+        let action = filler.fill(regionId: 1, color: -65536)
+        XCTAssertNil(action)
+
+        // Reset on zero-size canvas must not crash
+        filler.reset()
+
+        // Generate image on zero-size canvas must return nil and not crash
+        let image = filler.generateImage()
+        XCTAssertNil(image)
+    }
+
+    func testSmallFeaturePrecision() {
+        // Create 32x32 canvas
+        let w = 32
+        let h = 32
+        var pixels = [UInt32](repeating: 0xFFFFFFFF, count: w * h)
+
+        // Draw a large outer boundary
+        let black: UInt32 = 0xFF000000
+        for x in 0..<w {
+            pixels[x] = black
+            pixels[(h - 1) * w + x] = black
+        }
+        for y in 0..<h {
+            pixels[y * w] = black
+            pixels[y * w + (w - 1)] = black
+        }
+
+        // Draw a tiny inner box from (13, 13) to (18, 18)
+        for x in 13...18 {
+            pixels[13 * w + x] = black
+            pixels[18 * w + x] = black
+        }
+        for y in 13...18 {
+            pixels[y * w + 13] = black
+            pixels[y * w + 18] = black
+        }
+
+        let labelMap = LabelMapBuilder.buildFromPixelsSync(
+            pixels: pixels,
+            width: w,
+            height: h,
+            hasAlpha: false,
+            dilationPixels: 0
+        )
+
+        let smallCenterId = labelMap.getRegionId(x: 15, y: 15)
+        let bigRegionId = labelMap.getRegionId(x: 5, y: 5)
+        XCTAssertGreaterThan(smallCenterId, 0)
+        XCTAssertGreaterThan(bigRegionId, 0)
+        XCTAssertNotEqual(smallCenterId, bigRegionId)
+
+        // When tapping inside the small feature (15, 15):
+        let nearestInsideSmall = labelMap.findNearestRegionId(x: 15, y: 15, maxRadius: 10)
+        XCTAssertEqual(nearestInsideSmall, smallCenterId, "Tapping inside small feature must select the small region ID")
+
+        // When tapping on the border (13, 15):
+        let nearestOnBorder = labelMap.findNearestRegionId(x: 13, y: 15, maxRadius: 10)
+        XCTAssertGreaterThan(nearestOnBorder, 0)
     }
 }
 
