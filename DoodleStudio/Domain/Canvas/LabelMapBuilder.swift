@@ -48,8 +48,21 @@ public enum LabelMapBuilder {
         public func findNearestRegionId(x: Int, y: Int, maxRadius: Int = LabelMapBuilder.defaultMaxRadius) -> Int16 {
             let direct = getRegionId(x: x, y: y)
             let directCount = (direct > 0 && Int(direct) < regionPixelCounts.count) ? regionPixelCounts[Int(direct)] : 0
-            if direct > LabelMapBuilder.borderID && directCount >= 1000 {
-                return direct
+            if direct > LabelMapBuilder.borderID {
+                if directCount >= 1000 {
+                    return direct
+                }
+                // Small feature precision: if user tapped squarely inside a small region
+                // (all 4 cardinal neighbors share the exact same region ID), honor the direct tap
+                // instead of jumping to an adjacent large background region.
+                if x > 0 && x < width - 1 && y > 0 && y < height - 1 {
+                    if getRegionId(x: x + 1, y: y) == direct &&
+                       getRegionId(x: x - 1, y: y) == direct &&
+                       getRegionId(x: x, y: y + 1) == direct &&
+                       getRegionId(x: x, y: y - 1) == direct {
+                        return direct
+                    }
+                }
             }
 
             var fallbackId: Int16 = (direct > LabelMapBuilder.borderID) ? direct : LabelMapBuilder.borderID
@@ -86,8 +99,16 @@ public enum LabelMapBuilder {
         hasAlpha: Bool = false,
         dilationPixels: Int = 1
     ) -> LabelMapResult {
-        precondition(width > 0 && height > 0, "Dimensions must be positive")
-        precondition(pixels.count == width * height, "Pixel array size must match width * height")
+        guard width > 0 && height > 0, pixels.count == width * height else {
+            return LabelMapResult(
+                width: max(0, width),
+                height: max(0, height),
+                labelMap: [],
+                regionCount: 0,
+                regionPixelCounts: [0],
+                version: 1
+            )
+        }
 
         let size = width * height
         var isBorderMask = [Bool](repeating: false, count: size)

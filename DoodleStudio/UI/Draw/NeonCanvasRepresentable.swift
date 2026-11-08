@@ -51,5 +51,9 @@ public struct NeonCanvasRepresentable: UIViewRepresentable {
         public func canvasDidTapToFill(at point: CGPoint) {
             viewModel.handleFillTap(at: point)
         }
+
+        public func canvasDidLayoutSubviews() {
+            viewModel.restoreCanvasIfNeeded()
+        }
     }
 }

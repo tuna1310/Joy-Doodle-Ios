@@ -76,7 +76,9 @@ public enum StrokeInterpolator {
                 result.append(p); last = p
             }
         }
-        result.append(points.last!)
+        if let last = points.last {
+            result.append(last)
+        }
         return result
     }
 }

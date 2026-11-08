@@ -12,8 +12,7 @@ public final class HistoryManager: ObservableObject {
     @Published public private(set) var canRedo: Bool = false
 
     public init(maxHistorySize: Int = 50) {
-        precondition(maxHistorySize >= 30, "History capacity must be at least 30 steps")
-        self.maxHistorySize = maxHistorySize
+        self.maxHistorySize = max(30, maxHistorySize)
     }
 
     public func recordAction(_ action: EditAction) {
@@ -107,7 +106,7 @@ public final class ActionLogPlayer: ObservableObject {
     }
 
     public func getActionsForTimelapseFrame(frameIndex: Int, totalFrames: Int) -> [EditAction] {
-        guard totalFrames > 0, !actions.isEmpty else { return [] }
+        guard totalFrames > 1, !actions.isEmpty else { return actions }
         if frameIndex <= 0 { return [actions[0]] }
         if frameIndex >= totalFrames - 1 { return actions }
         let progress = Double(frameIndex) / Double(totalFrames - 1)
@@ -123,7 +122,7 @@ public final class ActionLogPlayer: ObservableObject {
         guard !actions.isEmpty else { onPlaybackEnded?(); return }
         stop()
         isPlaying = true
-        speedMultiplier = speed
+        speedMultiplier = max(0.1, speed)
 
         playbackTask = Task { @MainActor [weak self] in
             guard let self = self else { return }
@@ -136,7 +135,7 @@ public final class ActionLogPlayer: ObservableObject {
                 // Delay between actions (capped to max 500ms per step at 1x speed)
                 let nextTimestamp = idx + 1 < self.actions.count ? self.actions[idx + 1].timestampMs : action.timestampMs
                 let rawDelay = max(0, nextTimestamp - action.timestampMs)
-                let delay = min(Double(rawDelay) / 1000.0 / self.speedMultiplier, 0.5)
+                let delay = min(Double(rawDelay) / 1000.0 / max(0.1, self.speedMultiplier), 0.5)
                 if delay > 0 {
                     try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
                 }

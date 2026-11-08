@@ -149,4 +149,23 @@ final class ActionLogTests: XCTestCase {
         XCTAssertEqual(f.regionId, 2)
         XCTAssertEqual(f.color, -16711681)
     }
+
+    func testMalformedJSONDoesNotCrash() {
+        let invalidInputs = [
+            "",
+            "   ",
+            "{ broken json ",
+            "{\"version\": \"not_a_number\"}",
+            "null",
+            "12345",
+            "[1, 2, 3]",
+            "{\"actions\": \"invalid_actions_field\"}"
+        ]
+
+        for input in invalidInputs {
+            XCTAssertThrowsError(try ActionLog.deserialize(from: input)) { error in
+                XCTAssertNotNil(error)
+            }
+        }
+    }
 }

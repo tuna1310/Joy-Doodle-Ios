@@ -20,11 +20,11 @@ public final class RegionFiller {
 
     public init(labelMapResult: LabelMapBuilder.LabelMapResult) {
         self.labelMapResult = labelMapResult
-        self.width = labelMapResult.width
-        self.height = labelMapResult.height
-        self.regionCount = labelMapResult.regionCount
-        self.regionColors = [Int](repeating: 0, count: regionCount + 1)
-        self.fillPixels = [UInt32](repeating: 0, count: width * height)
+        self.width = max(0, labelMapResult.width)
+        self.height = max(0, labelMapResult.height)
+        self.regionCount = max(0, labelMapResult.regionCount)
+        self.regionColors = [Int](repeating: 0, count: max(0, regionCount) + 1)
+        self.fillPixels = [UInt32](repeating: 0, count: max(0, width * height))
     }
 
     /// Fills a region with a new color.
@@ -66,7 +66,7 @@ public final class RegionFiller {
     }
 
     public func reset() {
-        for i in 0...regionCount { regionColors[i] = 0 }
+        for i in 0..<regionColors.count { regionColors[i] = 0 }
         for i in 0..<fillPixels.count { fillPixels[i] = 0 }
     }
 

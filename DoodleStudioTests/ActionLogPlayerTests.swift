@@ -64,4 +64,27 @@ final class ActionLogPlayerTests: XCTestCase {
         let frameLast = player.getActionsForTimelapseFrame(frameIndex: 4, totalFrames: 5)
         XCTAssertEqual(frameLast.count, 3)
     }
+
+    func testPlayWithEmptyActionsDoesNotCrash() {
+        let player = ActionLogPlayer()
+        player.load(actions: [])
+        XCTAssertEqual(player.actionCount, 0)
+        XCTAssertFalse(player.isPlaying)
+
+        var endedCalled = false
+        player.onPlaybackEnded = {
+            endedCalled = true
+        }
+
+        player.play()
+        XCTAssertTrue(endedCalled)
+        XCTAssertFalse(player.isPlaying)
+
+        // Querying frames with 0 frames or empty actions
+        let framesEmpty = player.getActionsForTimelapseFrame(frameIndex: 0, totalFrames: 0)
+        XCTAssertEqual(framesEmpty.count, 0)
+
+        let framesOne = player.getActionsForTimelapseFrame(frameIndex: 0, totalFrames: 1)
+        XCTAssertEqual(framesOne.count, 0)
+    }
 }
