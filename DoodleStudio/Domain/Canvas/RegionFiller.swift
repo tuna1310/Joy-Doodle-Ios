@@ -88,17 +88,23 @@ public final class RegionFiller {
         let colorSpace = CGColorSpaceCreateDeviceRGB()
         let bitmapInfo = CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue
 
-        var pixelsCopy = fillPixels
         guard let ctx = CGContext(
-            data: &pixelsCopy,
+            data: nil,
             width: width,
             height: height,
             bitsPerComponent: 8,
             bytesPerRow: width * 4,
             space: colorSpace,
             bitmapInfo: bitmapInfo
-        ), let cgImage = ctx.makeImage() else { return nil }
+        ), let ctxData = ctx.data else { return nil }
 
+        fillPixels.withUnsafeBytes { rawBuffer in
+            if let baseAddress = rawBuffer.baseAddress {
+                memcpy(ctxData, baseAddress, width * height * 4)
+            }
+        }
+
+        guard let cgImage = ctx.makeImage() else { return nil }
         return UIImage(cgImage: cgImage)
     }
 }

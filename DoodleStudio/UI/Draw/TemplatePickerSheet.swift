@@ -127,6 +127,7 @@ public struct TemplatePickerSheet: View {
                         // 1. "Vẽ tự do" Option Card
                         Button(action: {
                             HapticManager.shared.impact()
+                            viewModel.showTemplatePicker = false
                             viewModel.clearToBlankCanvas()
                             dismiss()
                         }) {
@@ -157,6 +158,7 @@ public struct TemplatePickerSheet: View {
                             let isCurrent = template.id == viewModel.templateId
                             TemplateCard(template: template, isCurrent: isCurrent) {
                                 HapticManager.shared.impact()
+                                viewModel.showTemplatePicker = false
                                 viewModel.loadTemplate(template)
                                 dismiss()
                             }

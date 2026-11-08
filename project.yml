@@ -26,6 +26,9 @@ targets:
       - path: DoodleStudio
         excludes:
           - "**/*.md"
+          - "Resources/templates/**"
+      - path: DoodleStudio/Resources/templates
+        type: folder
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: com.doodlestudio.app
       INFOPLIST_FILE: Info.plist

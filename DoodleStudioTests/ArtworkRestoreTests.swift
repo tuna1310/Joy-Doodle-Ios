@@ -5,16 +5,15 @@ final class ArtworkRestoreTests: XCTestCase {
 
     func testSaveAndRestoreArtworkActionLog() throws {
         let testArtworkId = "test_restore_\(UUID().uuidString)"
+        let nowMs = Int64(Date().timeIntervalSince1970 * 1000)
         let artwork = Artwork(
             id: testArtworkId,
             title: "Restore Test",
             templateId: "template_01_330237",
-            createdAt: Date(),
-            modifiedAt: Date(),
-            durationSeconds: 15,
-            strokeCount: 2,
-            fillCount: 1,
-            thumbnailFileName: "\(testArtworkId).png"
+            isBlankCanvas: false,
+            thumbnailFileName: "\(testArtworkId).png",
+            createdAt: nowMs,
+            updatedAt: nowMs
         )
 
         let strokeAction = StrokeEditAction(
@@ -42,7 +41,7 @@ final class ArtworkRestoreTests: XCTestCase {
             backgroundColor: -16777216,
             actions: [.stroke(strokeAction), .fill(fillAction)],
             totalDurationMs: 500,
-            createdAt: 1700000000000
+            createdAt: nowMs
         )
 
         let dummyImage = UIGraphicsImageRenderer(size: CGSize(width: 32, height: 32)).image { ctx in
@@ -69,7 +68,7 @@ final class ArtworkRestoreTests: XCTestCase {
         }
 
         // Clean up
-        ArtworkRepository.shared.deleteArtwork(artwork)
+        ArtworkRepository.shared.deleteArtwork(id: artwork.id)
     }
 
     func testCorruptedActionLogReturnsNilWithoutCrash() {
@@ -105,8 +104,8 @@ final class ArtworkRestoreTests: XCTestCase {
             toolType: "CLASSIC_NEON"
         )
 
-        // Commit stroke to bitmap
-        canvas.commitActionToBitmapSync(.stroke(strokeAction))
+        // Commit stroke to bitmap via public API
+        canvas.appendCommittedAction(.stroke(strokeAction))
 
         // Redraw with empty actions to clear strokes
         canvas.redrawFromActions([])
@@ -115,4 +114,3 @@ final class ArtworkRestoreTests: XCTestCase {
         XCTAssertNotNil(canvas)
     }
 }
-
