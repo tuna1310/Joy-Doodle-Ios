@@ -1,6 +1,9 @@
 import SwiftUI
 import Combine
 import UIKit
+import os
+
+private let drawLogger = Logger(subsystem: "com.doodlestudio.app", category: "DrawViewModel")
 
 // MARK: - DrawViewModel
 // Port of Android's EditorViewModel. Full state machine for Drawing & Coloring.
@@ -241,14 +244,14 @@ public final class DrawViewModel: ObservableObject {
             DispatchQueue.main.async { [weak self] in
                 guard let self = self else { return }
                 guard self.templateLoadGeneration == currentGen else {
-                    self.drawLogger.info("Discarded stale template load [gen=\(currentGen), current=\(self.templateLoadGeneration)]")
+                    drawLogger.info("Discarded stale template load [gen=\(currentGen), current=\(self.templateLoadGeneration)]")
                     return
                 }
 
                 self.isLoading = false
 
                 guard let img = image, let f = filler else {
-                    self.drawLogger.error("Failed to load template or build labelMap for '\(template.id)'")
+                    drawLogger.error("Failed to load template or build labelMap for '\(template.id)'")
                     self.toastMessage = "Không thể tải hình mẫu. Vui lòng thử lại."
                     self.templateId = nil
                     self.isBlankCanvas = true
@@ -258,7 +261,7 @@ public final class DrawViewModel: ObservableObject {
                     return
                 }
 
-                self.drawLogger.info("Successfully applied template '\(template.id)' in \(String(format: "%.1f", elapsedMs))ms (\(f.regionCount) regions)")
+                drawLogger.info("Successfully applied template '\(template.id)' in \(String(format: "%.1f", elapsedMs))ms (\(f.regionCount) regions)")
                 self.templateUIImage = img
                 self.canvasView?.templateUIImage = img
                 self.regionFiller = f

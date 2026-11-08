@@ -315,6 +315,5 @@ public enum LabelMapBuilder {
         builderLogger.info("Built LabelMap for image (\(width)x\(height)) in \(String(format: "%.1f", ms))ms with \(result.regionCount) regions")
         return result
     }
-    }
 }
 
