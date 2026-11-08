@@ -1,6 +1,9 @@
 import Foundation
 import CoreGraphics
 import UIKit
+import os
+
+private let builderLogger = Logger(subsystem: "com.doodlestudio.app", category: "LabelMapBuilder")
 
 // MARK: - LabelMapBuilder
 // Deterministic Connected Components Label Map Builder.
@@ -150,13 +153,15 @@ public enum LabelMapBuilder {
             }
         }
 
-        // 2. Connected Components Labeling (deterministic BFS queue)
+        // 2. Connected Components Labeling (deterministic BFS with flat preallocated queue)
         var labelMap = [Int16](repeating: borderID, count: size)
         var currentRegionId: Int16 = 0
         var countsList: [Int] = [0] // index 0 is border
 
-        var queue = [Int]()
-        queue.reserveCapacity(size / 8)
+        // Flat reusable queue allocated ONCE to prevent dynamic array reallocation and memory spikes
+        var queue = [Int32](repeating: 0, count: size)
+        var head = 0
+        var tail = 0
 
         for y in 0..<height {
             let rowOffset = y * width
@@ -166,16 +171,19 @@ public enum LabelMapBuilder {
                     continue
                 }
 
+                if currentRegionId >= Int16.max - 1 {
+                    builderLogger.warning("Reached maximum region count limit: \(currentRegionId)")
+                    break
+                }
                 currentRegionId += 1
-                precondition(currentRegionId < Int16.max, "Exceeded maximum region count")
 
                 labelMap[currentIdx] = currentRegionId
-                queue.append(currentIdx)
+                queue[tail] = Int32(currentIdx)
+                tail += 1
                 var count = 0
 
-                var head = 0
-                while head < queue.count {
-                    let curIdx = queue[head]
+                while head < tail {
+                    let curIdx = Int(queue[head])
                     head += 1
                     count += 1
                     let curX = curIdx % width
@@ -186,32 +194,37 @@ public enum LabelMapBuilder {
                         let nIdx = curIdx - width
                         if !isBorderMask[nIdx] && labelMap[nIdx] == borderID {
                             labelMap[nIdx] = currentRegionId
-                            queue.append(nIdx)
+                            queue[tail] = Int32(nIdx)
+                            tail += 1
                         }
                     }
                     if curY < height - 1 {
                         let nIdx = curIdx + width
                         if !isBorderMask[nIdx] && labelMap[nIdx] == borderID {
                             labelMap[nIdx] = currentRegionId
-                            queue.append(nIdx)
+                            queue[tail] = Int32(nIdx)
+                            tail += 1
                         }
                     }
                     if curX > 0 {
                         let nIdx = curIdx - 1
                         if !isBorderMask[nIdx] && labelMap[nIdx] == borderID {
                             labelMap[nIdx] = currentRegionId
-                            queue.append(nIdx)
+                            queue[tail] = Int32(nIdx)
+                            tail += 1
                         }
                     }
                     if curX < width - 1 {
                         let nIdx = curIdx + 1
                         if !isBorderMask[nIdx] && labelMap[nIdx] == borderID {
                             labelMap[nIdx] = currentRegionId
-                            queue.append(nIdx)
+                            queue[tail] = Int32(nIdx)
+                            tail += 1
                         }
                     }
                 }
-                queue.removeAll(keepingCapacity: true)
+                head = 0
+                tail = 0
                 countsList.append(count)
             }
         }
@@ -274,12 +287,12 @@ public enum LabelMapBuilder {
         let height = cgImage.height
         guard width > 0 && height > 0 else { return nil }
 
-        var pixels = [UInt32](repeating: 0, count: width * height)
         let colorSpace = CGColorSpaceCreateDeviceRGB()
-        let bitmapInfo = CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue
+        // ARGB_8888 (premultipliedFirst + byteOrder32Big) matches Android ARGB Int format
+        let bitmapInfo = CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Big.rawValue
 
         guard let ctx = CGContext(
-            data: &pixels,
+            data: nil,
             width: width,
             height: height,
             bitsPerComponent: 8,
@@ -290,8 +303,18 @@ public enum LabelMapBuilder {
 
         ctx.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
 
+        guard let rawPtr = ctx.data else { return nil }
+        let buffer = rawPtr.bindMemory(to: UInt32.self, capacity: width * height)
+        let pixels = Array(UnsafeBufferPointer(start: buffer, count: width * height))
+
         let hasAlpha = (cgImage.alphaInfo != .none && cgImage.alphaInfo != .noneSkipLast && cgImage.alphaInfo != .noneSkipFirst)
-        return buildFromPixelsSync(pixels: pixels, width: width, height: height, hasAlpha: hasAlpha, dilationPixels: dilationPixels)
+        let start = DispatchTime.now()
+        let result = buildFromPixelsSync(pixels: pixels, width: width, height: height, hasAlpha: hasAlpha, dilationPixels: dilationPixels)
+        let end = DispatchTime.now()
+        let ms = Double(end.uptimeNanoseconds - start.uptimeNanoseconds) / 1_000_000.0
+        builderLogger.info("Built LabelMap for image (\(width)x\(height)) in \(String(format: "%.1f", ms))ms with \(result.regionCount) regions")
+        return result
+    }
     }
 }
 

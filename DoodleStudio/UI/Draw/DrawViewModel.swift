@@ -99,10 +99,19 @@ public final class DrawViewModel: ObservableObject {
 
     // Track whether saved actions have been loaded and rendered onto canvas
     private var hasRestoredCanvas: Bool = false
+    private var pendingTemplate: Template? = nil
+    private var templateLoadGeneration: Int = 0
 
     public func restoreCanvasIfNeeded() {
         guard !hasRestoredCanvas, let canvas = canvasView, canvas.bounds.width > 0, canvas.bounds.height > 0 else { return }
         hasRestoredCanvas = true
+
+        // 0. Pending template queued before canvas had non-zero bounds
+        if let pending = pendingTemplate {
+            pendingTemplate = nil
+            loadTemplate(pending)
+            return
+        }
 
         // 1. Line art
         if let template = templateUIImage {
@@ -198,30 +207,65 @@ public final class DrawViewModel: ObservableObject {
     // MARK: - Template Handling
 
     public func loadTemplate(_ template: Template) {
+        templateLoadGeneration += 1
+        let currentGen = templateLoadGeneration
+
         isLoading = true
         templateId = template.id
         isBlankCanvas = false
         artworkTitle = template.displayTitleVi
 
-        Task.detached(priority: .userInitiated) { [weak self] in
+        // If canvas has not laid out yet (zero size), hold as pendingTemplate
+        if canvasView == nil || canvasView?.bounds.width == 0 || canvasView?.bounds.height == 0 {
+            pendingTemplate = template
+            drawLogger.info("Canvas not yet laid out; queued pending template: \(template.id)")
+        }
+
+        drawLogger.info("Starting loadTemplate [gen=\(currentGen)]: id=\(template.id)")
+
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self = self else { return }
+
+            let startTime = DispatchTime.now()
             let image = TemplateRepository.shared.loadTemplateImage(template)
 
-            let filler: RegionFiller?
-            if let img = image, let labelMap = LabelMapBuilder.buildFromImage(img, dilationPixels: 1) {
-                filler = RegionFiller(labelMapResult: labelMap)
-            } else {
-                filler = nil
+            var filler: RegionFiller? = nil
+            if let img = image {
+                if let labelMap = LabelMapBuilder.buildFromImage(img, dilationPixels: 1) {
+                    filler = RegionFiller(labelMapResult: labelMap)
+                }
             }
+            let endTime = DispatchTime.now()
+            let elapsedMs = Double(endTime.uptimeNanoseconds - startTime.uptimeNanoseconds) / 1_000_000.0
 
-            await MainActor.run {
-                self.templateUIImage = image
-                self.canvasView?.templateUIImage = image
-                self.regionFiller = filler
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                guard self.templateLoadGeneration == currentGen else {
+                    self.drawLogger.info("Discarded stale template load [gen=\(currentGen), current=\(self.templateLoadGeneration)]")
+                    return
+                }
+
+                self.isLoading = false
+
+                guard let img = image, let f = filler else {
+                    self.drawLogger.error("Failed to load template or build labelMap for '\(template.id)'")
+                    self.toastMessage = "Không thể tải hình mẫu. Vui lòng thử lại."
+                    self.templateId = nil
+                    self.isBlankCanvas = true
+                    self.templateUIImage = nil
+                    self.canvasView?.templateUIImage = nil
+                    self.regionFiller = nil
+                    return
+                }
+
+                self.drawLogger.info("Successfully applied template '\(template.id)' in \(String(format: "%.1f", elapsedMs))ms (\(f.regionCount) regions)")
+                self.templateUIImage = img
+                self.canvasView?.templateUIImage = img
+                self.regionFiller = f
                 self.editorMode = .fill
                 self.isColorFillMode = true
                 self.canvasView?.isColorFillMode = true
-                self.isLoading = false
+
                 if !self.committedActions.isEmpty {
                     self.updateFillLayerFromActions(self.committedActions)
                 }
