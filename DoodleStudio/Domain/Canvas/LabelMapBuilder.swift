@@ -129,7 +129,10 @@ public enum LabelMapBuilder {
                 let r = (p >> 16) & 0xFF
                 let g = (p >> 8) & 0xFF
                 let b = p & 0xFF
-                let lum = Int(0.299 * Double(r) + 0.587 * Double(g) + 0.114 * Double(b))
+                let rD = 0.299 * Double(r)
+                let gD = 0.587 * Double(g)
+                let bD = 0.114 * Double(b)
+                let lum = Int(rD + gD + bD)
                 if lum > 128 { whiteStrokeCount += 1 } else { darkStrokeCount += 1 }
             }
             idx += sampleStep
@@ -142,7 +145,10 @@ public enum LabelMapBuilder {
             let r = (p >> 16) & 0xFF
             let g = (p >> 8) & 0xFF
             let b = p & 0xFF
-            let lum = Int(0.299 * Double(r) + 0.587 * Double(g) + 0.114 * Double(b))
+            let rD = 0.299 * Double(r)
+            let gD = 0.587 * Double(g)
+            let bD = 0.114 * Double(b)
+            let lum = Int(rD + gD + bD)
 
             if isNeonLineArt {
                 isBorderMask[i] = (a > 100 && lum > 100)
