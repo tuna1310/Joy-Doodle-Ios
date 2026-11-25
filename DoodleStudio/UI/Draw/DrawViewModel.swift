@@ -252,7 +252,7 @@ public final class DrawViewModel: ObservableObject {
 
                 guard let img = image, let f = filler else {
                     drawLogger.error("Failed to load template or build labelMap for '\(template.id)'")
-                    self.toastMessage = "Không thể tải hình mẫu. Vui lòng thử lại."
+                    self.toastMessage = "Couldn't load the template. Please try again."
                     self.templateId = nil
                     self.isBlankCanvas = true
                     self.templateUIImage = nil
@@ -485,9 +485,9 @@ public final class DrawViewModel: ObservableObject {
                 self.isLoading = false
                 self.isSaved = success
                 if success {
-                    self.toastMessage = "Đã lưu tranh thành công!"
+                    self.toastMessage = "Drawing saved successfully!"
                 } else {
-                    self.toastMessage = "Không thể lưu tranh"
+                    self.toastMessage = "Couldn't save the drawing"
                 }
                 onDone(success)
             }

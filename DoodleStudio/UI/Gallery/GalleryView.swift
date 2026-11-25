@@ -137,7 +137,7 @@ struct GalleryArtworkCard: View {
         .buttonStyle(PressAnimButtonStyle())
         .contextMenu {
             Button(role: .destructive, action: onDelete) {
-                Label("Xóa tranh", systemImage: "trash")
+                Label("Delete Drawing", systemImage: "trash")
             }
         }
         .onAppear {

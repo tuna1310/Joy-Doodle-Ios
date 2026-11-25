@@ -164,35 +164,35 @@ public struct DrawView: View {
         .navigationBarHidden(true)
         // Trash confirm alert
         .confirmationDialog(
-            "Xóa toàn bộ bức vẽ?",
+            "Clear the whole drawing?",
             isPresented: $viewModel.showClearAlert,
             titleVisibility: .visible
         ) {
-            Button("Xóa", role: .destructive) {
+            Button("Clear", role: .destructive) {
                 logger.info("Clear confirmed")
                 viewModel.clearStrokes()
             }
-            Button("Hủy", role: .cancel) {}
+            Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Nét vẽ và màu tô sẽ bị xóa. Khung hình mẫu sẽ được giữ nguyên.")
+            Text("Strokes and fills will be erased. The template outline will be kept.")
         }
         // Exit confirm dialog
         .confirmationDialog(
-            "Bạn muốn làm gì với bức tranh?",
+            "What do you want to do with your drawing?",
             isPresented: $viewModel.showExitDialog,
             titleVisibility: .visible
         ) {
-            Button("Lưu lại") {
+            Button("Save") {
                 logger.info("Save & exit")
                 viewModel.saveArtwork { _ in dismiss() }
             }
-            Button("Xóa đi", role: .destructive) {
+            Button("Discard", role: .destructive) {
                 logger.info("Discard & exit")
                 dismiss()
             }
-            Button("Vẽ tiếp", role: .cancel) {}
+            Button("Keep Drawing", role: .cancel) {}
         } message: {
-            Text("Bức tranh của bạn có nét vẽ chưa lưu.")
+            Text("Your drawing has unsaved strokes.")
         }
         .sheet(isPresented: $viewModel.showTemplatePicker) {
             TemplatePickerSheet(viewModel: viewModel)
@@ -380,10 +380,10 @@ struct ModeToggle: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            ModeButton(title: "🎨 Tô màu", isActive: viewModel.editorMode == .fill) {
+            ModeButton(title: "🎨 Fill", isActive: viewModel.editorMode == .fill) {
                 viewModel.setEditorMode(.fill)
             }
-            ModeButton(title: "✏️ Vẽ cọ", isActive: viewModel.editorMode == .draw) {
+            ModeButton(title: "✏️ Brush", isActive: viewModel.editorMode == .draw) {
                 viewModel.setEditorMode(.draw)
             }
         }
@@ -429,7 +429,7 @@ struct MoviePlaybackBar: View {
             Spacer()
 
             Button(action: { viewModel.exitReplay() }) {
-                Text("Dừng")
+                Text("Stop")
                     .font(.system(size: 14, weight: .bold))
                     .foregroundColor(.white)
                     .padding(.horizontal, 16).padding(.vertical, 8)
@@ -460,7 +460,7 @@ struct BrushPickerSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Chọn cọ vẽ")
+            Text("Choose Brush")
                 .font(.system(size: 16, weight: .bold))
                 .foregroundColor(.white)
                 .padding(.horizontal, 16)
@@ -560,7 +560,7 @@ struct ShareMenuOverlay: View {
             HStack {
                 Spacer()
                 VStack(alignment: .trailing, spacing: 10) {
-                    ShareMenuButton(icon: "square.and.arrow.up", label: "Chia sẻ ảnh") {
+                    ShareMenuButton(icon: "square.and.arrow.up", label: "Share Image") {
                         viewModel.shareImage()
                         viewModel.showShareSubmenu = false
                     }

@@ -30,15 +30,15 @@ public enum TemplatePickerCategory: String, CaseIterable, Identifiable {
 
     public var displayNameVi: String {
         switch self {
-        case .all: return "Tất cả"
-        case .animals: return "Động vật"
-        case .vehicles: return "Phương tiện"
-        case .sea: return "Biển"
-        case .flowers: return "Hoa lá"
-        case .dinosaurs: return "Khủng long"
-        case .food: return "Trái cây"
-        case .scenery: return "Phong cảnh"
-        case .letters: return "Chữ cái"
+        case .all: return "All"
+        case .animals: return "Animals"
+        case .vehicles: return "Vehicles"
+        case .sea: return "Sea"
+        case .flowers: return "Flowers"
+        case .dinosaurs: return "Dinosaurs"
+        case .food: return "Fruits"
+        case .scenery: return "Scenery"
+        case .letters: return "Letters"
         }
     }
 }
@@ -63,11 +63,11 @@ public struct TemplatePickerSheet: View {
                     VStack(alignment: .leading, spacing: 2) {
                         HStack(spacing: 8) {
                             Text("🎨").font(.system(size: 22))
-                            Text("Tranh tô màu")
+                            Text("Coloring Pages")
                                 .font(.system(size: 20, weight: .bold))
                                 .foregroundColor(.white)
                         }
-                        Text("Chọn hình mẫu để tô màu neon rực rỡ")
+                        Text("Pick a template to color with bright neon")
                             .font(.system(size: 12))
                             .foregroundColor(Color(UIColor(hex: 0xFF94A3B8)))
                     }
@@ -136,10 +136,10 @@ public struct TemplatePickerSheet: View {
                                     Circle().fill(Color(UIColor(hex: 0xFF334155))).frame(width: 56, height: 56)
                                     Text("✏️").font(.system(size: 26))
                                 }
-                                Text("Vẽ tự do")
+                                Text("Free Draw")
                                     .font(.system(size: 15, weight: .bold))
                                     .foregroundColor(.white)
-                                Text("Trang vẽ trắng")
+                                Text("Blank canvas")
                                     .font(.system(size: 11))
                                     .foregroundColor(Color(UIColor(hex: 0xFF94A3B8)))
                             }
@@ -239,7 +239,7 @@ struct TemplateCard: View {
                     Spacer()
 
                     if template.significantRegions > 0 {
-                        Text("\(template.significantRegions) vùng")
+                        Text("\(template.significantRegions) regions")
                             .font(.system(size: 10, weight: .bold))
                             .foregroundColor(AppColors.neonYellow)
                     }

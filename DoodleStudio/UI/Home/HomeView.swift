@@ -344,17 +344,17 @@ struct AdFreeSheet: View {
 
     var body: some View {
         VStack(spacing: 22) {
-            Text("🌟 Phiên bản không quảng cáo")
+            Text("🌟 Ad-Free Version")
                 .font(.title2.bold())
                 .foregroundColor(.white)
 
-            Text("Trải nghiệm vẽ tranh neon tuyệt đỉnh không bị làm phiền bởi quảng cáo.\n\nTính năng đang hoàn thiện qua StoreKit!")
+            Text("Enjoy the ultimate neon drawing experience without ads.\n\nThis feature is coming soon via StoreKit!")
                 .font(.system(size: 14))
                 .multilineTextAlignment(.center)
                 .foregroundColor(.gray)
                 .padding(.horizontal, 24)
 
-            Button("Đóng") { dismiss() }
+            Button("Close") { dismiss() }
                 .font(.system(size: 15, weight: .bold))
                 .foregroundColor(.white)
                 .padding(.horizontal, 32)
