@@ -41,6 +41,9 @@ public final class NeonCanvasView: UIView {
     public var templateUIImage: UIImage? = nil {
         didSet { setNeedsDisplay() }
     }
+    public var backgroundPhoto: UIImage? = nil {
+        didSet { setNeedsDisplay() }
+    }
 
     // MARK: - Bitmap Layers
     // committedBitmap: BLACK background + all committed strokes
@@ -171,12 +174,11 @@ public final class NeonCanvasView: UIView {
         let w = size.width, h = size.height
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self = self else { return }
-            UIGraphicsBeginImageContextWithOptions(CGSize(width: w, height: h), true, scale)
+            UIGraphicsBeginImageContextWithOptions(CGSize(width: w, height: h), false, scale)
             guard let ctx = UIGraphicsGetCurrentContext() else {
                 UIGraphicsEndImageContext(); return
             }
-            ctx.setFillColor(UIColor.black.cgColor)
-            ctx.fill(CGRect(x: 0, y: 0, width: w, height: h))
+            ctx.clear(CGRect(x: 0, y: 0, width: w, height: h))
             for action in actions {
                 self.renderAction(action, ctx: ctx, bounds: CGRect(x: 0, y: 0, width: w, height: h))
             }
@@ -200,15 +202,13 @@ public final class NeonCanvasView: UIView {
         let scale = renderScale
         let existing = committedBitmap
 
-        UIGraphicsBeginImageContextWithOptions(size, true, scale)
+        UIGraphicsBeginImageContextWithOptions(size, false, scale)
         guard let ctx = UIGraphicsGetCurrentContext() else {
             UIGraphicsEndImageContext(); return
         }
+        ctx.clear(CGRect(origin: .zero, size: size))
         if let img = existing {
             img.draw(in: CGRect(origin: .zero, size: size))
-        } else {
-            ctx.setFillColor(UIColor.black.cgColor)
-            ctx.fill(CGRect(origin: .zero, size: size))
         }
         self.renderAction(action, ctx: ctx, bounds: CGRect(origin: .zero, size: size))
         let newBitmap = UIGraphicsGetImageFromCurrentImageContext()
@@ -293,9 +293,12 @@ public final class NeonCanvasView: UIView {
         guard let ctx = UIGraphicsGetCurrentContext() else { return }
 
         if isReplaying {
-            // Replay mode: Black -> Fill -> Strokes -> Active -> Template
+            // Replay mode: Black -> Photo -> Fill -> Strokes -> Active -> Template
             ctx.setFillColor(UIColor.black.cgColor)
             ctx.fill(bounds)
+            if let photo = backgroundPhoto {
+                drawAspectFill(photo, in: bounds, ctx: ctx)
+            }
             fillLayer?.draw(in: bounds)
 
             for action in replayCompletedActions {
@@ -309,13 +312,15 @@ public final class NeonCanvasView: UIView {
         }
 
         // Normal mode:
-        // 1. CommittedBitmap (black background + all past strokes)
-        if let cached = committedBitmap {
-            cached.draw(in: bounds)
-        } else {
-            ctx.setFillColor(UIColor.black.cgColor)
-            ctx.fill(bounds)
+        // 1. Black background + optional photo background
+        ctx.setFillColor(UIColor.black.cgColor)
+        ctx.fill(bounds)
+        if let photo = backgroundPhoto {
+            drawAspectFill(photo, in: bounds, ctx: ctx)
         }
+
+        // 2. CommittedBitmap (all past strokes on transparent layer)
+        committedBitmap?.draw(in: bounds)
 
         // 2. Fill Layer (drawn on top of strokes to match Android layer order)
         fillLayer?.draw(in: bounds)
@@ -500,11 +505,15 @@ public final class NeonCanvasView: UIView {
         UIGraphicsBeginImageContextWithOptions(size, true, scale)
         defer { UIGraphicsEndImageContext() }
         if let ctx = UIGraphicsGetCurrentContext() {
+            let rect = CGRect(origin: .zero, size: size)
             ctx.setFillColor(UIColor.black.cgColor)
-            ctx.fill(CGRect(origin: .zero, size: size))
-            fillLayer?.draw(in: CGRect(origin: .zero, size: size))
-            committedBitmap?.draw(in: CGRect(origin: .zero, size: size))
-            templateUIImage?.draw(in: CGRect(origin: .zero, size: size))
+            ctx.fill(rect)
+            if let photo = backgroundPhoto {
+                drawAspectFill(photo, in: rect, ctx: ctx)
+            }
+            fillLayer?.draw(in: rect)
+            committedBitmap?.draw(in: rect)
+            templateUIImage?.draw(in: rect)
         }
         return UIGraphicsGetImageFromCurrentImageContext() ?? UIImage()
     }
@@ -515,9 +524,30 @@ public final class NeonCanvasView: UIView {
         let scale = renderScale
         UIGraphicsBeginImageContextWithOptions(size, false, scale)
         defer { UIGraphicsEndImageContext() }
+        if let ctx = UIGraphicsGetCurrentContext(), let photo = backgroundPhoto {
+            drawAspectFill(photo, in: CGRect(origin: .zero, size: size), ctx: ctx)
+        }
         fillLayer?.draw(in: CGRect(origin: .zero, size: size))
         committedBitmap?.draw(in: CGRect(origin: .zero, size: size))
         templateUIImage?.draw(in: CGRect(origin: .zero, size: size))
         return UIGraphicsGetImageFromCurrentImageContext() ?? UIImage()
+    }
+
+    private func drawAspectFill(_ image: UIImage, in rect: CGRect, ctx: CGContext) {
+        let imgSize = image.size
+        guard imgSize.width > 0, imgSize.height > 0 else { return }
+        ctx.saveGState()
+        ctx.clip(to: rect)
+        let scale = max(rect.width / imgSize.width, rect.height / imgSize.height)
+        let drawW = imgSize.width * scale
+        let drawH = imgSize.height * scale
+        let drawRect = CGRect(
+            x: rect.midX - drawW / 2.0,
+            y: rect.midY - drawH / 2.0,
+            width: drawW,
+            height: drawH
+        )
+        image.draw(in: drawRect)
+        ctx.restoreGState()
     }
 }

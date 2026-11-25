@@ -49,6 +49,7 @@ public final class DrawViewModel: ObservableObject {
 
     // MARK: - Template & Region Filler
     @Published public var templateUIImage: UIImage? = nil
+    @Published public var backgroundPhoto: UIImage? = nil
     public var regionFiller: RegionFiller? = nil
 
     // MARK: - UI State
@@ -57,11 +58,16 @@ public final class DrawViewModel: ObservableObject {
     @Published public var showClearAlert: Bool = false
     @Published public var showExitDialog: Bool = false
     @Published public var showTemplatePicker: Bool = false
+    @Published public var showPhotoSourceDialog: Bool = false
+    @Published public var showImagePicker: Bool = false
+    @Published public var imagePickerSourceType: UIImagePickerController.SourceType = .photoLibrary
     @Published public var showShareSheet: Bool = false
     @Published public var shareItems: [Any] = []
     @Published public var toastMessage: String? = nil
     @Published public var isSaved: Bool = false
     @Published public var isLoading: Bool = false
+    @Published public var isExportingVideo: Bool = false
+    @Published public var videoExportProgress: Double = 0.0
 
     // MARK: - Canvas reference
     public weak var canvasView: NeonCanvasView?
@@ -457,11 +463,81 @@ public final class DrawViewModel: ObservableObject {
         )
     }
 
+    public func setBackgroundPhoto(_ image: UIImage?) {
+        backgroundPhoto = image
+        canvasView?.backgroundPhoto = image
+        if image != nil {
+            toastMessage = "Photo added as drawing background!"
+        } else {
+            toastMessage = "Background photo removed."
+        }
+    }
+
+    public func openPhotoPicker(sourceType: UIImagePickerController.SourceType) {
+        if sourceType == .camera && !UIImagePickerController.isSourceTypeAvailable(.camera) {
+            toastMessage = "Camera is not available on this device."
+            return
+        }
+        imagePickerSourceType = sourceType
+        showImagePicker = true
+    }
+
     public func shareImage() {
         guard let canvas = canvasView else { return }
         let image = canvas.snapshot()
         shareItems = [image]
         showShareSheet = true
+    }
+
+    public func exportAndShareVideo(saveToPhotos: Bool = false) {
+        guard !isExportingVideo else { return }
+        guard let canvas = canvasView else { return }
+        let actions = historyManager.getActionLog()
+        guard !actions.isEmpty else {
+            toastMessage = "Draw something first to export a video!"
+            return
+        }
+
+        isExportingVideo = true
+        videoExportProgress = 0.0
+        let size = canvas.bounds.size
+        let photo = backgroundPhoto
+        let fill = canvas.fillLayer
+        let template = templateUIImage
+        let speed = replaySpeed
+
+        VideoExporter.exportTimelapse(
+            actions: actions,
+            canvasSize: size,
+            backgroundPhoto: photo,
+            fillLayer: fill,
+            templateImage: template,
+            speed: speed,
+            progress: { [weak self] pct in
+                self?.videoExportProgress = pct
+            },
+            completion: { [weak self] result in
+                guard let self = self else { return }
+                self.isExportingVideo = false
+                switch result {
+                case .success(let videoURL):
+                    if saveToPhotos {
+                        VideoExporter.saveVideoToPhotosAlbum(url: videoURL) { ok, err in
+                            if ok {
+                                self.toastMessage = "Video saved to Photos!"
+                            } else {
+                                self.toastMessage = err?.localizedDescription ?? "Could not save video."
+                            }
+                        }
+                    } else {
+                        self.shareItems = [videoURL]
+                        self.showShareSheet = true
+                    }
+                case .failure(let err):
+                    self.toastMessage = err.localizedDescription
+                }
+            }
+        )
     }
 
     public func saveArtwork(onDone: @escaping (Bool) -> Void) {

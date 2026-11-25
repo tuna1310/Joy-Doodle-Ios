@@ -20,6 +20,9 @@ public struct NeonCanvasRepresentable: UIViewRepresentable {
         if uiView.templateUIImage !== viewModel.templateUIImage {
             uiView.templateUIImage = viewModel.templateUIImage
         }
+        if uiView.backgroundPhoto !== viewModel.backgroundPhoto {
+            uiView.backgroundPhoto = viewModel.backgroundPhoto
+        }
     }
 
     private func applySettings(_ view: NeonCanvasView) {

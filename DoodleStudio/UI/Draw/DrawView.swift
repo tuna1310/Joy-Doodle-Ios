@@ -61,6 +61,24 @@ public struct DrawView: View {
 
                     Spacer().allowsHitTesting(false)
 
+                    // Photo Background Button (Doodle on Photos)
+                    Button {
+                        HapticManager.shared.impact()
+                        viewModel.showPhotoSourceDialog = true
+                    } label: {
+                        Image(systemName: viewModel.backgroundPhoto != nil ? "photo.fill" : "photo.on.rectangle.angled")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(width: 54, height: 54)
+                            .background(viewModel.backgroundPhoto != nil ? AppColors.neonCyan.opacity(0.35) : Color(UIColor(hex: 0xFF1E293B)))
+                            .clipShape(Circle())
+                            .overlay(Circle().stroke(AppColors.neonCyan.opacity(0.8), lineWidth: 1.5))
+                            .shadow(color: AppColors.neonCyan.opacity(0.4), radius: 6)
+                            .contentShape(Circle())
+                    }
+                    .buttonStyle(PressAnimButtonStyle())
+                    .allowsHitTesting(true)
+
                     // Template Picker Button (🎨)
                     Button {
                         HapticManager.shared.impact()
@@ -140,6 +158,26 @@ public struct DrawView: View {
                 .zIndex(20)
             }
 
+            // Video export progress overlay
+            if viewModel.isExportingVideo {
+                ZStack {
+                    Color.black.opacity(0.65).ignoresSafeArea()
+                    VStack(spacing: 14) {
+                        ProgressView(value: viewModel.videoExportProgress)
+                            .progressViewStyle(LinearProgressViewStyle(tint: AppColors.neonCyan))
+                            .frame(width: 220)
+                        Text("Exporting Video (\(Int(viewModel.videoExportProgress * 100))%)...")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(.white)
+                    }
+                    .padding(24)
+                    .background(Color(UIColor(hex: 0xFF1E293B)))
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .overlay(RoundedRectangle(cornerRadius: 16).stroke(AppColors.neonCyan.opacity(0.6), lineWidth: 1))
+                }
+                .zIndex(60)
+            }
+
             // Toast feedback
             if let msg = viewModel.toastMessage {
                 VStack {
@@ -196,6 +234,33 @@ public struct DrawView: View {
         }
         .sheet(isPresented: $viewModel.showTemplatePicker) {
             TemplatePickerSheet(viewModel: viewModel)
+        }
+        .confirmationDialog(
+            "Doodle on Photo",
+            isPresented: $viewModel.showPhotoSourceDialog,
+            titleVisibility: .visible
+        ) {
+            Button("Choose from Photo Library") {
+                viewModel.openPhotoPicker(sourceType: .photoLibrary)
+            }
+            if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                Button("Take Photo") {
+                    viewModel.openPhotoPicker(sourceType: .camera)
+                }
+            }
+            if viewModel.backgroundPhoto != nil {
+                Button("Remove Background Photo", role: .destructive) {
+                    viewModel.setBackgroundPhoto(nil)
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        }
+        .sheet(isPresented: $viewModel.showImagePicker) {
+            ImagePickerView(sourceType: viewModel.imagePickerSourceType) { picked in
+                if let img = picked {
+                    viewModel.setBackgroundPhoto(img)
+                }
+            }
         }
         .sheet(isPresented: $viewModel.showShareSheet) {
             ShareSheet(items: viewModel.shareItems)
@@ -521,7 +586,7 @@ struct BrushCard: View {
                 )
                 .shadow(color: isSelected ? AppColors.neonCyan.opacity(0.6) : .clear, radius: 6)
 
-                Text(brush.displayNameVi)
+                Text(brush.displayNameEn)
                     .font(.system(size: 9, weight: .medium))
                     .foregroundColor(isSelected ? .white : Color(UIColor(hex: 0xFF94A3B8)))
                     .lineLimit(2)
@@ -560,6 +625,14 @@ struct ShareMenuOverlay: View {
             HStack {
                 Spacer()
                 VStack(alignment: .trailing, spacing: 10) {
+                    ShareMenuButton(icon: "film", label: "Share Video (MP4)") {
+                        viewModel.showShareSubmenu = false
+                        viewModel.exportAndShareVideo(saveToPhotos: false)
+                    }
+                    ShareMenuButton(icon: "square.and.arrow.down", label: "Save Video to Photos") {
+                        viewModel.showShareSubmenu = false
+                        viewModel.exportAndShareVideo(saveToPhotos: true)
+                    }
                     ShareMenuButton(icon: "square.and.arrow.up", label: "Share Image") {
                         viewModel.shareImage()
                         viewModel.showShareSubmenu = false
